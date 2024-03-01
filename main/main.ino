@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include "my_printf.hpp"
 
-pid my_pid {0.01, 1, 0, 0.05 };
-float r {0.0};
+pid my_pid {0.1, 20, 1, 0.05 };
+float r  = 9;
 
 const int LED_PIN = 16;
 const int DAC_RANGE = 4096;
@@ -12,7 +12,6 @@ int       counter = 0;
 float     b = 5.3;
 float     m = -0.8;
 const int LDR_port = A0;
-int       R1 = 10000;
 float     v_out = 0;
 float     LUX = 0; //init lux
 float     voltage[200];
@@ -27,34 +26,54 @@ void setup() {
     Serial.begin();
 }
 
-void calculate_LUX(float v_in, float *r_LDR){
-    *r_LDR = R1 * (3.3 - v_in)/v_in; //resistance of LDR
+float Volt2LUX(float v_in){
+    float R1 = 10000;
+    float r_LDR = R1 * (3.3 - v_in)/v_in; //resistance of LDR
     float LUX = 0; //init lux
     float r_LDR_min = 0.001; // Minimum threshold for r_LDR
     
-    if (*r_LDR >= r_LDR_min && m != 0)
-        LUX = pow(10, ((log10(*r_LDR) - b) / m));
-    else
-        LUX = 0;
-
-    v_out += 300;
-    if (v_out > DAC_RANGE)
-      v_out = 0;
+    
+    LUX = pow(10, ((log10(r_LDR) - b) / m));
+    return LUX;
 }
+
+float LUX2Volt(float LUX_in){
+    float log_lux = log10(LUX_in);
+    
+    float R1 = 10000;
+    float r_LDR = pow(10, (log_lux * m + b));
+    float volt = (3.3 * r_LDR) / (R1 + r_LDR);
+    
+    return volt;
+}
+
 
 void print_results(float v_in, float r_LDR){
   my_printf(Serial, " Lux: %f r_LDR: %f v_in: %f, v_out: %f", LUX, r_LDR, v_in, v_out); 
 }
 
 void loop() {
+//  if (Serial.available())
+//  {
+//      r = Serial.read() - 48;
+//      Serial.read();  
+//  }
   if (Serial.available())
-    r = Serial.parseInt();
-  float y = analogRead(A0);
+  {
+     r = Serial.parseInt();
+     Serial.read();
+  }
+  
+  
+  Serial.print(r);Serial.print(" ");
+  float v_in = analogRead(LDR_port)*3.3/4095; //volts
+  float y = Volt2LUX(v_in);  
+  Serial.print(y);Serial.print(" ");
   float u = my_pid.compute_control(r, y);
-  int pwm = (int)u;
-  analogWrite(LED_PIN, pwm);
+  Serial.println();
+  analogWrite(LED_PIN, (int)u);
   my_pid.housekeep(r, y);
-  delay(10);
+  delay(100);
 }
 
 //void loop() {// the loop function runs cyclically
