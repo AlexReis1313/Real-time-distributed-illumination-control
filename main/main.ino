@@ -1,15 +1,18 @@
 #include "pid.h"
+#include <ostream>
 #include <math.h>
 #include <stdio.h>
 #include "my_printf.hpp"
+#include "parser.hpp"
 
-pid my_pid {0.1, 20, 1, 0.05 };
-float r  = 9;
+pid       my_pid {0.1, 20, 1, 0.05 };
+float     ref = 10.0f;
+Parser    my_parser(ref, 15);
 
-const int LED_PIN = 16;
+const int LED_PIN = 15;
 const int DAC_RANGE = 4096;
 int       counter = 0;
-float     b = 5.3;
+float     b = 5.3; //6.15
 float     m = -0.8;
 const int LDR_port = A0;
 float     v_out = 0;
@@ -17,7 +20,7 @@ float     LUX = 0; //init lux
 float     voltage[200];
 int       my_time[200];
 float     r_LDR = 0;
-int       i = 0;
+
 
 void setup() {
     analogReadResolution(12);
@@ -30,8 +33,6 @@ float Volt2LUX(float v_in){
     float R1 = 10000;
     float r_LDR = R1 * (3.3 - v_in)/v_in; //resistance of LDR
     float LUX = 0; //init lux
-    float r_LDR_min = 0.001; // Minimum threshold for r_LDR
-    
     
     LUX = pow(10, ((log10(r_LDR) - b) / m));
     return LUX;
@@ -39,7 +40,6 @@ float Volt2LUX(float v_in){
 
 float LUX2Volt(float LUX_in){
     float log_lux = log10(LUX_in);
-    
     float R1 = 10000;
     float r_LDR = pow(10, (log_lux * m + b));
     float volt = (3.3 * r_LDR) / (R1 + r_LDR);
@@ -53,26 +53,26 @@ void print_results(float v_in, float r_LDR){
 }
 
 void loop() {
-//  if (Serial.available())
-//  {
-//      r = Serial.read() - 48;
-//      Serial.read();  
-//  }
   if (Serial.available())
   {
-     r = Serial.parseInt();
-     Serial.read();
+      String command = Serial.readStringUntil('\n');
+      Serial.read();
+      command.trim(); // Remove any whitespace
+      my_parser.parseCommand(command);
+      ref = my_parser.getReference(0);
+      //ref = Serial.parseInt();
+      
+      
   }
-  
-  
-  Serial.print(r);Serial.print(" ");
-  float v_in = analogRead(LDR_port)*3.3/4095; //volts
+  Serial.print(ref);Serial.print(" ");
+  //0 to 4095 - digital - valor digital
+  float v_in = analogRead(LDR_port)*3.3/4095; //volts - analog - valor real
   float y = Volt2LUX(v_in);  
   Serial.print(y);Serial.print(" ");
-  float u = my_pid.compute_control(r, y);
+  float u = my_pid.compute_control(ref, y);
   Serial.println();
-  analogWrite(LED_PIN, (int)u);
-  my_pid.housekeep(r, y);
+  analogWrite(LED_PIN, u);
+  my_pid.housekeep(ref, y);
   delay(100);
 }
 
