@@ -1,11 +1,3 @@
-#include "pid.h"
-#include <ostream>
-#include <math.h>
-#include <stdio.h>
-#include "my_printf.hpp"
-#include "parser.hpp"
-#include <hardware/flash.h> //for flash_get_unique_id
-#include "mcp2515.h"
 #include "vars.h"
 
 void setup() {
@@ -15,61 +7,6 @@ void setup() {
     Serial.begin();
 }
 
-double get_gain(){
-    float o_lux;
-    float x_lux;
-    float o; //voltage for zero light
-    float x; //voltage for 3000 PWM
-    float gain;
-
-    analogWrite(LED_PIN, 0);
-    delay(3000);
-    o = analogRead(LDR_port)*3.3/4095;
-    o_lux = Volt2LUX(o);
-    delay(1000);
-    //Serial.print("o: "); Serial.println(o);
-
-    analogWrite(LED_PIN, 3000);
-    delay(3000);
-    x = analogRead(LDR_port)*3.3/4095;
-    x_lux = Volt2LUX(x);
-    //Serial.print("x: "); Serial.println(x_lux);
-
-    gain = (x_lux - o_lux) / 3000;
-    Serial.print("Gain: "); Serial.println(gain, 10);
-    delay(1000);
-    return gain;
-}
-
-//x_ref is in lux
-double get_H_xref(float x_ref){
-    float volt_ref;
-    float H_xref;
-
-    volt_ref = LUX2Volt(x_ref);
-    H_xref = (volt_ref / x_ref);
-    Serial.print("H_xref: "); Serial.println(H_xref, 10);
-    return (H_xref);
-}
-
-double get_H_x(float x_ref, float vss){
-    float H_x;
-    float vss_lux;
-
-    vss_lux = Volt2LUX(vss);
-    H_x = (vss / vss_lux);
-    Serial.print("H_x: "); Serial.println(H_x, 10);
-    return (H_x);
-}
-
-float vss;
-float y;
-float ref_volts;
-float vss_lux;
-float G ; //0.0041873786
-float H_xref; //0.0751975700 para ref=10
-float H_x; //0.0592132099 para ref=10
-bool gain_setup = false;
 void loop() {
     //Serial.print("HI"); Serial.println();
     //calculate_tau(voltage, my_time);

@@ -21,10 +21,6 @@ void Parser::parseCommand(const String& command) {
         Serial.println("Command empty!");
         return;
     }
-//    int spaceCount = 0;
-//    for (char c : command) {
-//        if (c == ' ') spaceCount++;
-//    }
     switch (cmd) {
         case 'm':
             if (command.length() == 1)
@@ -71,7 +67,6 @@ void Parser::parseCommand(const String& command) {
 //<val> is a number that reflects the duty cycle
 void Parser::setDutyCycle(int &i, float &val) { //val (0, 4095)
     analogWrite(this->led_pin, static_cast<int>(val));
-    this->current_luminaire = val;
     //Serial.println("ack");
 }
 
@@ -91,10 +86,10 @@ void Parser::checkMenu(){
 //Usage: g d <i>
 void Parser::getDutyCycle(int &i) {
     int dutyCycle = analogRead(this->led_pin); // Read the current PWM value or a stored value that reflects the duty cycle
-    Serial.print("d ");
-    Serial.print(i);
-    Serial.print(" ");
-    Serial.println(dutyCycle);
+    // Serial.print("d ");
+    // Serial.print(i);
+    // Serial.print(" ");
+    // Serial.println(dutyCycle);
 }
 
 inline void Parser::setReference(int i, float &val) {
