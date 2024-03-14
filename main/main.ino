@@ -1,37 +1,44 @@
-#include "vars.h"
+// Done by Duarte 13/03/2024
+
+#include "includes/vars.h"
+
+float k = 50;
+float tau = 0.263;
+pid   my_pid;
 
 void setup() {
     analogReadResolution(12);
     analogWriteFreq(30000); //30KHz
     analogWriteRange(4095); //Max PWM
     Serial.begin();
+    G = get_gain();
+    bk = 1 / (H_xref * G);
+    b_controller = bk / k;
+    H_x = get_H_x(x_ref, vss);
+    H_xref = get_H_xref(x_ref);
+    my_pid = pid(0.1, k, b, tau, 0, 0);
+    //my_pid = pid(0.1, 20, 1, 0.05);
 }
 
-void loop() {
+void loop() {    
     //Serial.print("HI"); Serial.println();
-    //calculate_tau(voltage, my_time);
-    if (gain_setup == false){
-        G = get_gain();
-        gain_setup = true;
-    }
-    H_xref = get_H_xref(x_ref);
-    H_x = get_H_x(x_ref, vss);
+    //calculate_tau(voltage, my_time, 0);
     if (Serial.available()) 
     {
-      String command = Serial.readStringUntil('\n');
-      command.trim(); // Remove any whitespace
-      my_parser.parseCommand(command);
-      x_ref = my_parser.getReference(0);
+        String command = Serial.readStringUntil('\n');
+        command.trim(); // Remove any whitespace
+        my_parser.parseCommand(command);
+        x_ref = my_parser.getReference(0);
     }
     ref_volts = LUX2Volt(x_ref);
     Serial.print(x_ref);Serial.print(" ");//0 to 4095 - digital - valor digital
     vss = analogRead(LDR_port)*3.3/4095; //volts - analog - valor real
     vss_lux = Volt2LUX(vss);
     Serial.print(vss_lux);Serial.print(" ");
-    float u = my_pid.compute_control(ref_volts, vss);
+    float u = my_pid.compute_control(x_ref, vss_lux);
     Serial.println();
     analogWrite(LED_PIN, (int)u);
-    my_pid.housekeep(x_ref, y);
+    my_pid.housekeep(x_ref, vss_lux);
     delay(100);
 }
 

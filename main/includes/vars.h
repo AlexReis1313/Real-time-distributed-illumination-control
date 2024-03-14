@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   vars.h                                             :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: duarte33 <duarte33@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/03/13 00:38:34 by duarte33          #+#    #+#             */
-/*   Updated: 2024/03/13 01:19:12 by duarte33         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 // Done by Duarte 13/03/2024
 
 #ifndef VARS_H
@@ -24,24 +12,24 @@
 #include "parser.hpp"
 #include "pid.h"
 
-extern const int       LED_PIN;
-extern const int       DAC_RANGE;
-extern const float     b;
-extern const float     m;
-extern const int       LDR_port;
-extern float           x_ref;
+extern const int        LED_PIN;
+extern const int        LDR_port;
+extern const int        DAC_RANGE;
+extern const float      b;
+extern const float      m;
+ 
+extern Parser           my_parser;
 
-extern pid             my_pid;
-extern Parser          my_parser;
-
-extern float            vss;
-extern float            y;
+extern float            x_ref;
 extern float            ref_volts;
+extern float            vss;
 extern float            vss_lux;
 extern float            G ; //0.0041873786
 extern float            H_xref; //0.0751975700 para ref=10
 extern float            H_x; //0.0592132099 para ref=10
 extern bool             gain_setup;
+extern float            bk;
+extern float            b_controller;
 
 
 // Can-bus setup

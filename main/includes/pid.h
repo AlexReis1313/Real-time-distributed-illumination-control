@@ -13,6 +13,7 @@ class pid {
       //func(MyClass(10)); - with explicit
       explicit pid( float _h, float _K = 0, float b_ = 1,
                     float Ti_ = 1, float Td_ = 0, float N_ = 10);
+      pid(); //Default Constructor
       ~pid() {}; //Destructor
       float compute_control( float r, float y);
       void housekeep( float r, float y);

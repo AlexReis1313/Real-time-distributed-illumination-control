@@ -1,4 +1,4 @@
-#include "vars.h"
+#include "includes/vars.h"
 
 const int       LED_PIN = 15;
 const int       DAC_RANGE = 4096;
@@ -8,15 +8,16 @@ const int       LDR_port = A0;
 float           x_ref = 10.0f;
 
 float           vss = 0.0; // Initialize with default values as appropriate
-float           y = 0.0;
 float           ref_volts = 0.0;
 float           vss_lux = 0.0;
 float           G = 0.0; // Initialize with the value if known, or 0 otherwise
 float           H_xref = 0.0;
 float           H_x = 0.0;
 bool            gain_setup = false;
+float           bk = 0.0;
+float           b_controller = 0.0;
 
-pid             my_pid {0.1, 20, 1, 0.05};
+//pid             my_pid(0.1, 10, 1, 0.263, 0, 0);
 Parser          my_parser(x_ref, LED_PIN);
 
 // Can-bus setup
