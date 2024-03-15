@@ -19,6 +19,7 @@ class pid {
       void housekeep( float r, float y);
       float saturate(float v, float ulow, float uhigh);
       void print_output(float u);
+      void setBcontroller(float b_controller);
 };
 
 // inline means that it is expanded in code instead of 

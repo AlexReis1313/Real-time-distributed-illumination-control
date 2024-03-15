@@ -5,7 +5,7 @@ pid::pid() {}
 
 pid::pid(float _h, float _K, float b_, float Ti_, 
          float Td_, float N_): h {_h}, K {_K}, b {b_}, 
-         Ti {Ti_}, Td {Td_}, N {N_}, I {800.0}, D {0.0}, 
+         Ti {Ti_}, Td {Td_}, N {N_}, I {0.0}, D {0.0}, 
          y_old{0.0} {} //b_old{0.0} Kold{0.0} {} // should check arguments validity
 
 float pid::compute_control( float r, float y ) {
@@ -31,4 +31,6 @@ float pid::compute_control( float r, float y ) {
     return u;
 }
 
-//a
+void pid::setBcontroller (float b_controller){
+    this->b = b_controller;
+}

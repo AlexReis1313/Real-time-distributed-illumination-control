@@ -2,44 +2,47 @@
 
 #include "includes/vars.h"
 
-float k = 50;
-float tau = 0.263;
-pid   my_pid;
+//k = 1500, tau = 0.263/10;
 
 void setup() {
+    vars_setup();
+    time_vars_setup();
     analogReadResolution(12);
     analogWriteFreq(30000); //30KHz
     analogWriteRange(4095); //Max PWM
     Serial.begin();
-    G = get_gain();
-    bk = 1 / (H_xref * G);
-    b_controller = bk / k;
-    H_x = get_H_x(x_ref, vss);
-    H_xref = get_H_xref(x_ref);
-    my_pid = pid(0.1, k, b, tau, 0, 0);
-    //my_pid = pid(0.1, 20, 1, 0.05);
 }
 
 void loop() {    
-    //Serial.print("HI"); Serial.println();
-    //calculate_tau(voltage, my_time, 0);
     if (Serial.available()) 
     {
         String command = Serial.readStringUntil('\n');
         command.trim(); // Remove any whitespace
-        my_parser.parseCommand(command);
-        x_ref = my_parser.getReference(0);
+        my()->my_parser.parseCommand(command);
+        my()->x_ref = my()->my_parser.getReference(0);
     }
-    ref_volts = LUX2Volt(x_ref);
-    Serial.print(x_ref);Serial.print(" ");//0 to 4095 - digital - valor digital
-    vss = analogRead(LDR_port)*3.3/4095; //volts - analog - valor real
-    vss_lux = Volt2LUX(vss);
-    Serial.print(vss_lux);Serial.print(" ");
-    float u = my_pid.compute_control(x_ref, vss_lux);
-    Serial.println();
-    analogWrite(LED_PIN, (int)u);
-    my_pid.housekeep(x_ref, vss_lux);
-    delay(100);
+    my()->ref_volts = LUX2Volt(my()->x_ref);
+    my()->vss = analogRead(my()->LDR_port)*3.3/4095;
+    //my()->vss = get_vss_non_blocking();
+    if (my()->vss != -1)
+    {
+        if (millis() - time_vars()->last_control_time >= time_vars()->control_interval) {
+            get_H_xref();
+            get_H_x();
+            my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)) * 0.5);
+            my()->vss_lux = Volt2LUX(my()->vss);
+            Serial.print(my()->x_ref);
+            Serial.print(" ");
+            Serial.print(my()->vss_lux);
+            Serial.print(" ");
+            my()->u = my()->my_pid.compute_control(my()->ref_volts, my()->vss);
+            Serial.print(my()->u * my()->gain + 0.02);
+            Serial.println();
+            analogWrite(my()->LED_PIN, (int)(my()->u));
+            my()->my_pid.housekeep(my()->ref_volts, my()->vss);
+            time_vars()->last_control_time = millis();
+        }
+    }
 }
 
 
@@ -96,4 +99,3 @@ void read_interrupt(uint gpio, uint32_t events) {
 //        data_available = false;
 //    }
 // }
-

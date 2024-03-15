@@ -1,27 +1,57 @@
 #include "includes/vars.h"
 
-const int       LED_PIN = 15;
-const int       DAC_RANGE = 4096;
-const float     b = 6.15; //6.15 ; 5.33
-const float     m = -0.8;
-const int       LDR_port = A0;
-float           x_ref = 10.0f;
+t_data *my(void){ //multithreading advantages; null inicialization; encapsulation, redability
+    static t_data my_data;
 
-float           vss = 0.0; // Initialize with default values as appropriate
-float           ref_volts = 0.0;
-float           vss_lux = 0.0;
-float           G = 0.0; // Initialize with the value if known, or 0 otherwise
-float           H_xref = 0.0;
-float           H_x = 0.0;
-bool            gain_setup = false;
-float           bk = 0.0;
-float           b_controller = 0.0;
+    return (&my_data);
+}
 
-//pid             my_pid(0.1, 10, 1, 0.263, 0, 0);
-Parser          my_parser(x_ref, LED_PIN);
+
+
+void vars_setup(void){
+    //Control variables
+    my()->k = 1500;
+    my()->tau = 0.263/30;
+    //get_H_x();
+    my()->b_controller = 1 / (my()->H_xref * my()->gain * my()->k);
+
+    //LUX variables
+    my()->b = 6.15;
+    my()->m = -0.8;
+
+    //Hardware variables
+    my()->LED_PIN = 15;
+    my()->LDR_port = A0;
+    my()->DAC_RANGE = 4096;
+
+    //Reference variables
+    my()->x_ref = 10;
+
+    //Parser variables
+    my()->my_parser = Parser(my()->x_ref, my()->LED_PIN);
+
+    //Controller variables
+    my()->my_pid = pid(0.01, my()->k, my()->b_controller, my()->tau); //my_pid = pid(0.1, 20, 1, 0.05);
+    get_gain();
+    get_H_xref();
+}
+
+t_time_vars *time_vars(void){ //multithreading advantages; null inicialization; encapsulation, redability
+    static t_time_vars my_time_data;
+
+    return (&my_time_data);
+};
+
+
+void time_vars_setup(void){
+    time_vars()->n_measurements = 10;
+    time_vars()->measurement_interval = 10; // Time between measurements in milliseconds
+    time_vars()->measurement_complete = false;
+    time_vars()->control_interval = 100;
+}
 
 // Can-bus setup
-uint8_t         this_pico_flash_id[8], node_address; //node address(last byte of the flash ID)
+uint8_t         this_pico_flash_id[8], node_address;//node address(last byte of the flash ID)
 struct can_frame canMsgTx, canMsgRx;
 unsigned long   counterTx {0}, counterRx {0};
 MCP2515::ERROR  err;
@@ -38,15 +68,14 @@ float Volt2LUX(float v_in){
     float R1 = 10000;
     float r_LDR = R1 * (3.3 - v_in)/v_in; //resistance of LDR
     float LUX = 0; //init lux
-    
-    LUX = pow(10, ((log10(r_LDR) - b) / m));
+    LUX = pow(10, ((log10(r_LDR) - my()->b) / my()->m));
     return LUX;
 }
 
 float LUX2Volt(float LUX_in){
     float log_lux = log10(LUX_in);
     float R1 = 10000;
-    float r_LDR = pow(10, (log_lux * m + b));
+    float r_LDR = pow(10, (log_lux * my()->m + my()->b));
     float volt = (3.3 * R1) / (R1 + r_LDR);
     
     return volt;
@@ -63,16 +92,16 @@ void calculate_tau(float voltage[], int my_time[], int i = 0){
 
    memset(voltage, 0, sizeof(float) * 400); //clear array
    memset(my_time, 0, sizeof(int) * 400);
-   analogWrite(LED_PIN, 0); // set led PWM to 1
+   analogWrite(my()->LED_PIN, 0); // set led PWM to 1
    delay(1000);
-   vss = analogRead(LDR_port);
+   vss = analogRead(my()->LDR_port);
    delay(5000);
-   analogWrite(LED_PIN, 4000); // set led PWM to 4000
+   analogWrite(my()->LED_PIN, 4000); // set led PWM to 4000
    int start_time = millis();
  
    while((read == false) && i < 400)
    {
-      new_vss = analogRead(LDR_port)*3.3/4095;
+      new_vss = analogRead(my()->LDR_port)*3.3/4095;
       if(abs(vss - new_vss)/ new_vss <= 0.000001f)
          read = true;
       voltage[i] = new_vss;
@@ -98,50 +127,116 @@ void calculate_tau(float voltage[], int my_time[], int i = 0){
    delay(5000); //5s
 }
 
-double get_gain(){
+void get_gain(void){
     float o_lux;
     float x_lux;
     float o; //voltage for zero light
     float x; //voltage for 3000 PWM
     float gain;
 
-    analogWrite(LED_PIN, 0);
+    analogWrite(my()->LED_PIN, 0);
     delay(3000);
-    o = analogRead(LDR_port)*3.3/4095;
+    o = analogRead(my()->LDR_port)*3.3/4095;
     o_lux = Volt2LUX(o);
     delay(1000);
     //Serial.print("o: "); Serial.println(o);
 
-    analogWrite(LED_PIN, 3000);
+    analogWrite(my()->LED_PIN, 3000);
     delay(3000);
-    x = analogRead(LDR_port)*3.3/4095;
+    x = analogRead(my()->LDR_port)*3.3/4095;
     x_lux = Volt2LUX(x);
     //Serial.print("x: "); Serial.println(x_lux);
 
-    gain = (x_lux - o_lux) / 3000;
-    Serial.print("Gain: "); Serial.println(gain, 10);
+    my()->gain = (x_lux - o_lux) / 3000;
+    Serial.print("Gain: "); Serial.println(my()->gain, 10);
     delay(1000);
-    return gain;
 }
 
 //x_ref is in lux
-double get_H_xref(float x_ref){
-    float volt_ref;
-    float H_xref;
-
-    volt_ref = LUX2Volt(x_ref);
-    H_xref = (volt_ref / x_ref);
-    Serial.print("H_xref: "); Serial.println(H_xref, 10);
-    return (H_xref);
+void get_H_xref(void){ 
+    my()->ref_volts = LUX2Volt(my()->x_ref);
+    my()->H_xref = (my()->ref_volts / my()->x_ref);
+    //Serial.print("H_xref: "); Serial.println(H_xref, 10);
 }
 
-double get_H_x(float x_ref, float vss){
-    float H_x;
-    float vss_lux;
-
-    vss_lux = Volt2LUX(vss);
-    H_x = (vss / vss_lux);
-    Serial.print("H_x: "); Serial.println(H_x, 10);
-    return (H_x);
+void get_H_x(void){
+    my()->vss_lux = Volt2LUX(my()->vss);
+    my()->H_x = (my()->vss / my()->vss_lux);
+    //Serial.print("H_x: "); Serial.println(H_x, 10);
 }
+
+// Global variables
+std::vector<float> measurements;
+bool measurement_complete = false;
+int measurement_index = 0;
+int mid_idx;
+float median;
+unsigned long last_measurement_time = 0;
+int n_measurements = 10; // replace with your value
+int measurement_interval = 10; // replace with your value
+
+int get_vss_non_blocking(){ //digital filtering
+    measurements.resize(n_measurements);
+
+    if (measurement_complete) {
+        // Reset the state for the next measurement
+        measurement_complete = false;
+        measurement_index = 0;
+
+        // Calculate median
+        std::sort(measurements.begin(), measurements.end());
+
+        mid_idx = n_measurements / 2;
+        if (n_measurements % 2 == 0) {
+            median = (measurements[mid_idx - 1] + measurements[mid_idx]) / 2.0;
+        } else {
+            median = measurements[mid_idx];
+        }
+        my()->vss = median * 3.3 / 4095; // Convert to volts
+    }
+    else if (measurement_index < n_measurements) {
+        if (millis() - last_measurement_time >= measurement_interval) {
+            measurements[measurement_index++] = analogRead(my()->LDR_port);
+            last_measurement_time = millis();
+
+            if (measurement_index == n_measurements) {
+                measurement_complete = true; // Signal that the measurements are complete
+            }
+        }
+    }
+    return -1; // Indicate that measurement is not complete
+}
+// int get_vss_non_blocking(){ //digital filtering
+//     static std::vector<float> measurements(time_vars()->n_measurements);
+
+//     if (time_vars()->measurement_complete) {
+//         // Reset the state for the next measurement
+//         time_vars()->measurement_complete = false;
+//         time_vars()->measurement_index = 0;
+
+//         // Calculate median
+//         std::sort(measurements.begin(), measurements.end());
+
+//         time_vars()->mid_idx = time_vars()->n_measurements / 2;
+//         if (time_vars()->n_measurements % 2 == 0) {
+//             time_vars()->median = (measurements[time_vars()->mid_idx - 1] \
+//                                   + measurements[time_vars()->mid_idx]) / 2.0;
+//         } else {
+//             time_vars()->median = measurements[time_vars()->mid_idx];
+//         }
+//         my()->vss = time_vars()->median * 3.3 / 4095; // Convert to volts
+//     }
+//     else if (time_vars()->measurement_index < time_vars()->n_measurements) {
+//         if (millis() - time_vars()->last_measurement_time >= time_vars()->measurement_interval) {
+//             measurements[time_vars()->measurement_index++] = analogRead(my()->LDR_port);
+//             time_vars()->last_measurement_time = millis();
+
+//             if (time_vars()->measurement_index == time_vars()->n_measurements) {
+//                 time_vars()->measurement_complete = true; // Signal that the measurements are complete
+//             }
+//         }
+//     }
+//     return -1; // Indicate that measurement is not complete
+// }
+
 

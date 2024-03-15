@@ -7,11 +7,24 @@
 //' r <i> <val> ' - Set the illuminance reference of luminaire i to val in LUX
 //' g  d   <i>  ' - Show the duty cycle of the specified luminaire.
 //' g  r   <i>  ' - Show the illuminance reference of the specified luminaire.
-
-Parser::Parser(float &_reference, const int _led_pin) : reference(_reference),
+float default_reference = 10.0;
+Parser::Parser() : reference(default_reference), led_pin(0){
+    this->current_luminaire = analogRead(15);
+}
+Parser::Parser(float _reference, const int _led_pin) : reference(_reference),
                                                         led_pin(_led_pin){
      this->current_luminaire = analogRead(_led_pin);
 }
+
+Parser& Parser::operator=(const Parser& other) {
+    if (this != &other) {
+        this->reference = other.reference;
+        this->led_pin = other.led_pin;
+    }
+    return *this;
+}
+
+Parser::~Parser() {}
 
 void Parser::parseCommand(const String& command) {
     char cmd = command.charAt(0); // Get the command type
