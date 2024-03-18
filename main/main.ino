@@ -13,7 +13,7 @@ void setup() {
     //my()->vss = analogRead(my()->LDR_port)*3.3/4095;
 }
 
-const int n_size = 40;
+const int n_size = 200;
 float arr[n_size];
 int mid_index;
 float m_median;
@@ -21,7 +21,7 @@ float m_median;
 float get_adc_digital_filter() {
     for (size_t i = 0; i < n_size; i++) { // 10 microseconds delay between measurements
         arr[i] = analogRead(my()->LDR_port);
-        delayMicroseconds(10);
+        delayMicroseconds(50);
     }
     mid_index = n_size / 2;
     if (n_size % 2 == 0) {
@@ -35,17 +35,19 @@ float get_adc_digital_filter() {
 
 
 bool inicial = false;
+float total_time;
+float t_final;
 
 void loop() {  
-    if (!inicial) {
-        Serial.begin();
-        Serial.print("x_ref"); 
-        Serial.print(" "); 
-        Serial.print("vss_lux"); 
-        Serial.print(" "); 
-        Serial.println("u");
-        inicial = true;
-    }  
+//    if (!inicial) {
+//        Serial.begin();
+//        Serial.print("x_ref"); 
+//        Serial.print(" "); 
+//        Serial.print("vss_lux"); 
+//        Serial.print(" "); 
+//        Serial.println("u");
+//        inicial = true;
+//    }  
     if (Serial.available()) 
     {
         String command = Serial.readStringUntil('\n');
@@ -53,9 +55,7 @@ void loop() {
         my()->my_parser.parseCommand(command);
         my()->x_ref = my()->my_parser.getReference(0);
     }
-    //my()->vss = analogRead(my()->LDR_port)*3.3/4095;
-
-    //my()->vss = get_vss_non_blocking();
+    
     time_vars()->current_time = millis();
     if (time_vars()->current_time - time_vars()->last_control_time >= time_vars()->control_interval) {
         my()->ref_volts = LUX2Volt(my()->x_ref); 
@@ -67,15 +67,12 @@ void loop() {
         my()->u = my()->my_pid.compute_control(my()->ref_volts, my()->vss);
         analogWrite(my()->LED_PIN, (int)(my()->u));
         my()->my_pid.housekeep(my()->ref_volts, my()->vss);
-        Serial.print(my()->x_ref);
-        Serial.print(" ");
-        //delayMicroseconds(10);
-        Serial.print(my()->vss_lux);
-        Serial.print(" ");
-        //delayMicroseconds(10);
-        Serial.print(my()->u * my()->gain + 0.02);
-        Serial.println();
-        //delayMicroseconds(10);
+        Serial.print(my()->x_ref); Serial.print(" ");
+        Serial.print(my()->vss_lux); Serial.print(" ");
+        Serial.println(my()->u * my()->gain + 0.02);
+        //total_time = millis() - time_vars()->current_time;
+        //Serial.print("Total time: "); Serial.println(total_time, 10);
+        //delay(2000);
         time_vars()->last_control_time = time_vars()->current_time;
     }
 }

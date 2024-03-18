@@ -8,12 +8,12 @@ t_data *my(void){ //multithreading advantages; null inicialization; encapsulatio
 
 void vars_setup(void){
     //Control variables //0, 10, 5
-    my()->k = 750;
+    my()->k = 300;
     my()->tau = 0.263/10;
-    my()->b_factor = 5;
-    my()->Tt = 1;
+    my()->b_factor = 5; //more b 
+    my()->Tt = 0.05;
     //get_H_x();
-    my()->b_controller = 1 / (my()->H_xref * my()->gain * my()->k);
+    my()->b_controller = (1 / (my()->H_xref * my()->gain * my()->k))* my()->b_factor;
 
     //LUX variables
     my()->b = 6.15;
@@ -31,8 +31,8 @@ void vars_setup(void){
     my()->my_parser = Parser(my()->x_ref, my()->LED_PIN);
 
     //Controller variables
-    //my()->my_pid = pid(0.01, my()->k, my()->b_controller, my()->tau, my()->Tt); 
-    my()->my_pid = pid(0.01, 20, 1, 0.05);
+    my()->my_pid = pid(0.01, my()->k, my()->b_controller, my()->tau, my()->Tt); 
+    //my()->my_pid = pid(0.01, 20, 1, 0.05);
     get_gain();
     get_H_xref();
 }
@@ -69,8 +69,7 @@ int             my_time[400];
 float Volt2LUX(float v_in){
     float R1 = 10000;
     float r_LDR = R1 * (3.3 - v_in)/v_in; //resistance of LDR
-    float LUX = 0; //init lux
-    LUX = pow(10, ((log10(r_LDR) - my()->b) / my()->m));
+    float LUX = pow(10, ((log10(r_LDR) - my()->b) / my()->m));
     return LUX;
 }
 
