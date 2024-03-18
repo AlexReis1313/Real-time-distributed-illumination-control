@@ -10,10 +10,27 @@ void setup() {
     analogReadResolution(12);
     analogWriteFreq(30000); //30KHz
     analogWriteRange(4095); //Max PWM
-    Serial.begin();
+    //my()->vss = analogRead(my()->LDR_port)*3.3/4095;
 }
 
-void loop() {    
+const int n_size = 40;
+float arr[n_size];
+int mid_index;
+float m_median;
+
+bool inicial = false;
+
+void loop() {  
+    if (!inicial) {
+        delay(1000);
+        Serial.begin();
+        Serial.print("x_ref"); 
+        Serial.print(" "); 
+        Serial.print("vss_lux"); 
+        Serial.print(" "); 
+        Serial.println("u");
+        inicial = true;
+    }  
     if (Serial.available()) 
     {
         String command = Serial.readStringUntil('\n');
@@ -21,27 +38,38 @@ void loop() {
         my()->my_parser.parseCommand(command);
         my()->x_ref = my()->my_parser.getReference(0);
     }
-    my()->ref_volts = LUX2Volt(my()->x_ref);
-    my()->vss = analogRead(my()->LDR_port)*3.3/4095;
+    //my()->vss = analogRead(my()->LDR_port)*3.3/4095;
+
     //my()->vss = get_vss_non_blocking();
-    if (my()->vss != -1)
-    {
-        if (millis() - time_vars()->last_control_time >= time_vars()->control_interval) {
-            get_H_xref();
-            get_H_x();
-            my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)) * 0.5);
-            my()->vss_lux = Volt2LUX(my()->vss);
-            Serial.print(my()->x_ref);
-            Serial.print(" ");
-            Serial.print(my()->vss_lux);
-            Serial.print(" ");
-            my()->u = my()->my_pid.compute_control(my()->ref_volts, my()->vss);
-            Serial.print(my()->u * my()->gain + 0.02);
-            Serial.println();
-            analogWrite(my()->LED_PIN, (int)(my()->u));
-            my()->my_pid.housekeep(my()->ref_volts, my()->vss);
-            time_vars()->last_control_time = millis();
+    time_vars()->current_time = millis();
+    if (time_vars()->current_time - time_vars()->last_control_time >= time_vars()->control_interval) {
+        my()->ref_volts = LUX2Volt(my()->x_ref);
+        for (size_t i = 0; i < n_size; i++) { // 10 microseconds delay between measurements
+            arr[i] = analogRead(my()->LDR_port);
+            delayMicroseconds(10);
         }
+        mid_index = n_size / 2;
+        if (n_size % 2 == 0) {
+            m_median = (arr[mid_index - 1] + arr[mid_index]) / 2.0;
+        } else {
+            m_median = arr[mid_index];
+        }
+        std::sort(arr, arr + n_size);  
+        my()->vss = m_median * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+        get_H_xref();
+        get_H_x();
+        my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k))/my()->b_factor);
+        my()->vss_lux = Volt2LUX(my()->vss);
+        my()->u = my()->my_pid.compute_control(my()->ref_volts, my()->vss);
+        analogWrite(my()->LED_PIN, (int)(my()->u));
+        my()->my_pid.housekeep(my()->ref_volts, my()->vss);
+        Serial.print(my()->x_ref);
+        Serial.print(" ");
+        Serial.print(my()->vss_lux);
+        Serial.print(" ");
+        Serial.print(my()->u * my()->gain + 0.02);
+        Serial.println();
+        time_vars()->last_control_time = time_vars()->current_time;
     }
 }
 

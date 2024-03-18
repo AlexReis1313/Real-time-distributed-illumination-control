@@ -6,12 +6,12 @@ t_data *my(void){ //multithreading advantages; null inicialization; encapsulatio
     return (&my_data);
 }
 
-
-
 void vars_setup(void){
-    //Control variables
-    my()->k = 1500;
-    my()->tau = 0.263/30;
+    //Control variables //0, 10, 5
+    my()->k = 750;
+    my()->tau = 0.263/10;
+    my()->b_factor = 5;
+    my()->Tt = 1;
     //get_H_x();
     my()->b_controller = 1 / (my()->H_xref * my()->gain * my()->k);
 
@@ -31,7 +31,8 @@ void vars_setup(void){
     my()->my_parser = Parser(my()->x_ref, my()->LED_PIN);
 
     //Controller variables
-    my()->my_pid = pid(0.01, my()->k, my()->b_controller, my()->tau); //my_pid = pid(0.1, 20, 1, 0.05);
+    //my()->my_pid = pid(0.01, my()->k, my()->b_controller, my()->tau, my()->Tt); 
+    my()->my_pid = pid(0.01, 20, 1, 0.05);
     get_gain();
     get_H_xref();
 }
@@ -47,7 +48,8 @@ void time_vars_setup(void){
     time_vars()->n_measurements = 10;
     time_vars()->measurement_interval = 10; // Time between measurements in milliseconds
     time_vars()->measurement_complete = false;
-    time_vars()->control_interval = 100;
+    time_vars()->control_interval = 10;
+   
 }
 
 // Can-bus setup
@@ -148,7 +150,7 @@ void get_gain(void){
     //Serial.print("x: "); Serial.println(x_lux);
 
     my()->gain = (x_lux - o_lux) / 3000;
-    Serial.print("Gain: "); Serial.println(my()->gain, 10);
+    //Serial.print("Gain: "); Serial.println(my()->gain, 10);
     delay(1000);
 }
 
@@ -165,47 +167,46 @@ void get_H_x(void){
     //Serial.print("H_x: "); Serial.println(H_x, 10);
 }
 
-// Global variables
-std::vector<float> measurements;
-bool measurement_complete = false;
-int measurement_index = 0;
-int mid_idx;
-float median;
-unsigned long last_measurement_time = 0;
-int n_measurements = 10; // replace with your value
-int measurement_interval = 10; // replace with your value
+// std::vector<float> measurements;
+// bool measurement_complete = false;
+// int measurement_index = 0;
+// int mid_idx;
+// float median;
+// unsigned long last_measurement_time = 0;
+// int n_measurements = 10; // replace with your value
+// int measurement_interval = 10; // replace with your value
 
-int get_vss_non_blocking(){ //digital filtering
-    measurements.resize(n_measurements);
+// int get_vss_non_blocking(){ //digital filtering
+//     measurements.resize(n_measurements);
 
-    if (measurement_complete) {
-        // Reset the state for the next measurement
-        measurement_complete = false;
-        measurement_index = 0;
+//     if (measurement_complete) {
+//         // Reset the state for the next measurement
+//         measurement_complete = false;
+//         measurement_index = 0;
 
-        // Calculate median
-        std::sort(measurements.begin(), measurements.end());
+//         // Calculate median
+//         std::sort(measurements.begin(), measurements.end());
 
-        mid_idx = n_measurements / 2;
-        if (n_measurements % 2 == 0) {
-            median = (measurements[mid_idx - 1] + measurements[mid_idx]) / 2.0;
-        } else {
-            median = measurements[mid_idx];
-        }
-        my()->vss = median * 3.3 / 4095; // Convert to volts
-    }
-    else if (measurement_index < n_measurements) {
-        if (millis() - last_measurement_time >= measurement_interval) {
-            measurements[measurement_index++] = analogRead(my()->LDR_port);
-            last_measurement_time = millis();
+//         mid_idx = n_measurements / 2;
+//         if (n_measurements % 2 == 0) {
+//             median = (measurements[mid_idx - 1] + measurements[mid_idx]) / 2.0;
+//         } else {
+//             median = measurements[mid_idx];
+//         }
+//         my()->vss = median * 3.3 / 4095; // Convert to volts
+//     }
+//     else if (measurement_index < n_measurements) {
+//         if (millis() - last_measurement_time >= measurement_interval) {
+//             measurements[measurement_index++] = analogRead(my()->LDR_port);
+//             last_measurement_time = millis();
 
-            if (measurement_index == n_measurements) {
-                measurement_complete = true; // Signal that the measurements are complete
-            }
-        }
-    }
-    return -1; // Indicate that measurement is not complete
-}
+//             if (measurement_index == n_measurements) {
+//                 measurement_complete = true; // Signal that the measurements are complete
+//             }
+//         }
+//     }
+//     return -1; // Indicate that measurement is not complete
+// }
 // int get_vss_non_blocking(){ //digital filtering
 //     static std::vector<float> measurements(time_vars()->n_measurements);
 
@@ -238,5 +239,3 @@ int get_vss_non_blocking(){ //digital filtering
 //     }
 //     return -1; // Indicate that measurement is not complete
 // }
-
-

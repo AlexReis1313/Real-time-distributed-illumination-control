@@ -35,11 +35,13 @@ struct s_data
 
     float            k;             //control variable
     float            b_controller;  //control variable
-    float            tau;           // tau = Ti
+    float            b_factor;      //control variable
+    float            tau;           //tau = Ti
     float            gain;          //0.0041873786
     float            H_xref;        //0.0751975700 para ref=10
     float            H_x;           //0.0592132099 para ref=10
     float            u;
+    float            Tt;
 };
 
 struct s_time_vars
@@ -55,7 +57,8 @@ struct s_time_vars
     
     //For void loop
     unsigned long       last_control_time;
-    unsigned long       control_interval; 
+    unsigned long       control_interval;
+    unsigned long       current_time; 
 };
 
 // Can-bus setup
