@@ -18,11 +18,26 @@ float arr[n_size];
 int mid_index;
 float m_median;
 
+float get_adc_digital_filter() {
+    for (size_t i = 0; i < n_size; i++) { // 10 microseconds delay between measurements
+        arr[i] = analogRead(my()->LDR_port);
+        delayMicroseconds(10);
+    }
+    mid_index = n_size / 2;
+    if (n_size % 2 == 0) {
+        m_median = (arr[mid_index - 1] + arr[mid_index]) / 2.0;
+    } else {
+        m_median = arr[mid_index];
+    }
+    std::sort(arr, arr + n_size); 
+    return m_median;
+}
+
+
 bool inicial = false;
 
 void loop() {  
     if (!inicial) {
-        delay(1000);
         Serial.begin();
         Serial.print("x_ref"); 
         Serial.print(" "); 
@@ -43,19 +58,8 @@ void loop() {
     //my()->vss = get_vss_non_blocking();
     time_vars()->current_time = millis();
     if (time_vars()->current_time - time_vars()->last_control_time >= time_vars()->control_interval) {
-        my()->ref_volts = LUX2Volt(my()->x_ref);
-        for (size_t i = 0; i < n_size; i++) { // 10 microseconds delay between measurements
-            arr[i] = analogRead(my()->LDR_port);
-            delayMicroseconds(10);
-        }
-        mid_index = n_size / 2;
-        if (n_size % 2 == 0) {
-            m_median = (arr[mid_index - 1] + arr[mid_index]) / 2.0;
-        } else {
-            m_median = arr[mid_index];
-        }
-        std::sort(arr, arr + n_size);  
-        my()->vss = m_median * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+        my()->ref_volts = LUX2Volt(my()->x_ref); 
+        my()->vss = get_adc_digital_filter() * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         get_H_xref();
         get_H_x();
         my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k))/my()->b_factor);
@@ -65,10 +69,13 @@ void loop() {
         my()->my_pid.housekeep(my()->ref_volts, my()->vss);
         Serial.print(my()->x_ref);
         Serial.print(" ");
+        //delayMicroseconds(10);
         Serial.print(my()->vss_lux);
         Serial.print(" ");
+        //delayMicroseconds(10);
         Serial.print(my()->u * my()->gain + 0.02);
         Serial.println();
+        //delayMicroseconds(10);
         time_vars()->last_control_time = time_vars()->current_time;
     }
 }
