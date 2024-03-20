@@ -7,34 +7,40 @@ t_data *my(void){ //multithreading advantages; null inicialization; encapsulatio
 }
 
 void vars_setup(void){
-    //Control variables //0, 10, 5
-    my()->k = 300;
-    my()->tau = 0.263/10;
-    my()->b_factor = 5; //more b 
-    my()->Tt = 0.05;
-    //get_H_x();
-    my()->b_controller = (1 / (my()->H_xref * my()->gain * my()->k))* my()->b_factor;
-
-    //LUX variables
-    my()->b = 6.15;
-    my()->m = -0.8;
-
     //Hardware variables
     my()->LED_PIN = 15;
     my()->LDR_port = A0;
     my()->DAC_RANGE = 4096;
 
-    //Reference variables
-    my()->x_ref = 10;
+    //LUX variables
+    my()->b = 6.15;
+    my()->m = -0.8;
 
-    //Parser variables
-    my()->my_parser = Parser(my()->x_ref, my()->LED_PIN);
+
+    //Control variables //0, 10, 5
+    my()->k = 750 / 50; //300;
+    my()->b_factor = 5; //more b 
+    my()->tau = 0.13 / 100; //0.263/10;
+    my()->Tt = 1; //0.05;
+    get_gain();
+    get_H_xref();
+    get_H_x();
+    my()->b_controller = 1;
+    my()->u = 0;
 
     //Controller variables
     my()->my_pid = pid(0.01, my()->k, my()->b_controller, my()->tau, my()->Tt); 
     //my()->my_pid = pid(0.01, 20, 1, 0.05);
-    get_gain();
-    get_H_xref();
+    
+    //Reference variables
+    my()->x_ref = 10;
+    my()->vss = analogRead(my()->LDR_port)*3.3/4095;
+    my()->vss_lux = Volt2LUX(my()->vss);
+    my()->ref_volts = LUX2Volt(my()->x_ref);
+    //Parser variables
+    my()->my_parser = Parser(my()->x_ref, my()->LED_PIN);
+
+
 }
 
 t_time_vars *time_vars(void){ //multithreading advantages; null inicialization; encapsulation, redability
@@ -45,9 +51,6 @@ t_time_vars *time_vars(void){ //multithreading advantages; null inicialization; 
 
 
 void time_vars_setup(void){
-    time_vars()->n_measurements = 10;
-    time_vars()->measurement_interval = 10; // Time between measurements in milliseconds
-    time_vars()->measurement_complete = false;
     time_vars()->control_interval = 10;
    
 }
@@ -135,21 +138,17 @@ void get_gain(void){
     float x; //voltage for 3000 PWM
     float gain;
 
+    delay(1500);
     analogWrite(my()->LED_PIN, 0);
     delay(3000);
     o = analogRead(my()->LDR_port)*3.3/4095;
     o_lux = Volt2LUX(o);
-    delay(1000);
-    //Serial.print("o: "); Serial.println(o);
-
     analogWrite(my()->LED_PIN, 3000);
     delay(3000);
     x = analogRead(my()->LDR_port)*3.3/4095;
     x_lux = Volt2LUX(x);
-    //Serial.print("x: "); Serial.println(x_lux);
-
     my()->gain = (x_lux - o_lux) / 3000;
-    //Serial.print("Gain: "); Serial.println(my()->gain, 10);
+    Serial.print("Gain: "); Serial.println(my()->gain, 10);
     delay(1000);
 }
 
@@ -157,84 +156,9 @@ void get_gain(void){
 void get_H_xref(void){ 
     my()->ref_volts = LUX2Volt(my()->x_ref);
     my()->H_xref = (my()->ref_volts / my()->x_ref);
-    //Serial.print("H_xref: "); Serial.println(H_xref, 10);
 }
 
 void get_H_x(void){
     my()->vss_lux = Volt2LUX(my()->vss);
     my()->H_x = (my()->vss / my()->vss_lux);
-    //Serial.print("H_x: "); Serial.println(H_x, 10);
 }
-
-// std::vector<float> measurements;
-// bool measurement_complete = false;
-// int measurement_index = 0;
-// int mid_idx;
-// float median;
-// unsigned long last_measurement_time = 0;
-// int n_measurements = 10; // replace with your value
-// int measurement_interval = 10; // replace with your value
-
-// int get_vss_non_blocking(){ //digital filtering
-//     measurements.resize(n_measurements);
-
-//     if (measurement_complete) {
-//         // Reset the state for the next measurement
-//         measurement_complete = false;
-//         measurement_index = 0;
-
-//         // Calculate median
-//         std::sort(measurements.begin(), measurements.end());
-
-//         mid_idx = n_measurements / 2;
-//         if (n_measurements % 2 == 0) {
-//             median = (measurements[mid_idx - 1] + measurements[mid_idx]) / 2.0;
-//         } else {
-//             median = measurements[mid_idx];
-//         }
-//         my()->vss = median * 3.3 / 4095; // Convert to volts
-//     }
-//     else if (measurement_index < n_measurements) {
-//         if (millis() - last_measurement_time >= measurement_interval) {
-//             measurements[measurement_index++] = analogRead(my()->LDR_port);
-//             last_measurement_time = millis();
-
-//             if (measurement_index == n_measurements) {
-//                 measurement_complete = true; // Signal that the measurements are complete
-//             }
-//         }
-//     }
-//     return -1; // Indicate that measurement is not complete
-// }
-// int get_vss_non_blocking(){ //digital filtering
-//     static std::vector<float> measurements(time_vars()->n_measurements);
-
-//     if (time_vars()->measurement_complete) {
-//         // Reset the state for the next measurement
-//         time_vars()->measurement_complete = false;
-//         time_vars()->measurement_index = 0;
-
-//         // Calculate median
-//         std::sort(measurements.begin(), measurements.end());
-
-//         time_vars()->mid_idx = time_vars()->n_measurements / 2;
-//         if (time_vars()->n_measurements % 2 == 0) {
-//             time_vars()->median = (measurements[time_vars()->mid_idx - 1] \
-//                                   + measurements[time_vars()->mid_idx]) / 2.0;
-//         } else {
-//             time_vars()->median = measurements[time_vars()->mid_idx];
-//         }
-//         my()->vss = time_vars()->median * 3.3 / 4095; // Convert to volts
-//     }
-//     else if (time_vars()->measurement_index < time_vars()->n_measurements) {
-//         if (millis() - time_vars()->last_measurement_time >= time_vars()->measurement_interval) {
-//             measurements[time_vars()->measurement_index++] = analogRead(my()->LDR_port);
-//             time_vars()->last_measurement_time = millis();
-
-//             if (time_vars()->measurement_index == time_vars()->n_measurements) {
-//                 time_vars()->measurement_complete = true; // Signal that the measurements are complete
-//             }
-//         }
-//     }
-//     return -1; // Indicate that measurement is not complete
-// }

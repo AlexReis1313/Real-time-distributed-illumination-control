@@ -6,7 +6,9 @@
 class pid {
     private:
       float I, D, K, Ti, Tt, Td, b, h, y_old, N, b_old, Kold;
+      float P, u, error, ao;
       float LED_PIN = 16;
+      bool  feedforward, antiwindup;
       
     public:
       //func(10); - without explicit
@@ -25,11 +27,18 @@ class pid {
 // inline means that it is expanded in code instead of 
 // involving a functions call (thus more time efficient).
 inline void pid::housekeep( float r, float y ) {
-    float e;
-    
-    e = r - y; //error
-    I += (K*h)/Ti*e;
-    y_old = y;
+    error = r - y; //error
+    if (antiwindup) {
+        ao = h/Tt;
+    } else {
+        ao = 0;
+    }
+    float integral = 0;
+    if (!feedforward) {
+        integral = K*h/Ti*error;
+    } 
+    I += integral + ao*(u - (P+I));
+    y = y_old;
 }
 
 inline float pid::saturate(float v, float ulow, float uhigh){

@@ -5,31 +5,32 @@
 //k = 1500, tau = 0.263/10;
 
 void setup() {
-    vars_setup();
-    time_vars_setup();
+    Serial.begin(115200);
     analogReadResolution(12);
     analogWriteFreq(30000); //30KHz
-    analogWriteRange(4095); //Max PWM
-    //my()->vss = analogRead(my()->LDR_port)*3.3/4095;
+    analogWriteRange(4096); //Max PWM
+    vars_setup();
+    time_vars_setup();
+    my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)));
+        
 }
 
-const int n_size = 200;
-float arr[n_size];
-int mid_index;
-float m_median;
 
-float get_adc_digital_filter() {
+float get_adc_digital_filter(const int n_size, int delay_Microseconds) {
+    float arr[n_size];
+    int mid_index;
+    float m_median;
     for (size_t i = 0; i < n_size; i++) { // 10 microseconds delay between measurements
         arr[i] = analogRead(my()->LDR_port);
-        delayMicroseconds(50);
-    }
-    mid_index = n_size / 2;
-    if (n_size % 2 == 0) {
-        m_median = (arr[mid_index - 1] + arr[mid_index]) / 2.0;
-    } else {
-        m_median = arr[mid_index];
+        delayMicroseconds(delay_Microseconds);
     }
     std::sort(arr, arr + n_size); 
+    mid_index = n_size / 2;
+    if (!(n_size % 2)) {
+        m_median = (arr[mid_index - 1] + arr[mid_index]) / 2.0;
+    } else {
+        m_median = arr[int(mid_index)];
+    }    //Serial.print("H_xref: "); Serial.println(H_xref, 10);
     return m_median;
 }
 
@@ -58,14 +59,16 @@ void loop() {
     
     time_vars()->current_time = millis();
     if (time_vars()->current_time - time_vars()->last_control_time >= time_vars()->control_interval) {
-        my()->ref_volts = LUX2Volt(my()->x_ref); 
-        my()->vss = get_adc_digital_filter() * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+        my()->vss = get_adc_digital_filter(20, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+        my()->vss_lux = Volt2LUX(my()->vss);
         get_H_xref();
         get_H_x();
-        my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k))/my()->b_factor);
-        my()->vss_lux = Volt2LUX(my()->vss);
+        //my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)));
+        
         my()->u = my()->my_pid.compute_control(my()->ref_volts, my()->vss);
-        analogWrite(my()->LED_PIN, (int)(my()->u));
+        analogWrite(my()->LED_PIN, (my()->u));
+
+        my()->ref_volts = LUX2Volt(my()->x_ref); 
         my()->my_pid.housekeep(my()->ref_volts, my()->vss);
         Serial.print(my()->x_ref); Serial.print(" ");
         Serial.print(my()->vss_lux); Serial.print(" ");

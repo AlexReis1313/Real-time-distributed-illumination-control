@@ -28,11 +28,6 @@ struct s_data
     pid              my_pid;
     Parser           my_parser;
 
-    float            x_ref;
-    float            ref_volts;
-    float            vss;
-    float            vss_lux;
-
     float            k;             //control variable
     float            b_controller;  //control variable
     float            b_factor;      //control variable
@@ -42,19 +37,15 @@ struct s_data
     float            H_x;           //0.0592132099 para ref=10
     float            u;
     float            Tt;
+
+    float            x_ref;
+    float            ref_volts;
+    float            vss;
+    float            vss_lux;
 };
 
 struct s_time_vars
 {
-    //For get_vss_non_blocking
-    int                 n_measurements;
-    int                 measurement_index;
-    unsigned long       last_measurement_time;
-    unsigned long       measurement_interval; // Time between measurements in milliseconds
-    bool                measurement_complete;
-    float               median;
-    int                 mid_idx;
-    
     //For void loop
     unsigned long       last_control_time;
     unsigned long       control_interval;
@@ -81,7 +72,6 @@ void        calculate_tau(float voltage[], int my_time[], int i);
 void        get_H_xref(); //x_ref is in lux
 void        get_H_x();
 void        get_gain();
-int         get_vss_non_blocking();
 
 void        vars_setup(void);
 t_time_vars *time_vars(void);
