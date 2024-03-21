@@ -30,6 +30,7 @@ struct s_data
     float            m;
     pid              my_pid;
     Parser           my_parser;
+    Metrics          my_metrics;
 
     float            k;             //control variable
     float            b_controller;  //control variable
@@ -40,6 +41,8 @@ struct s_data
     float            H_x;           //0.0592132099 para ref=10
     float            u;
     float            Tt;
+
+    float            o_lux;
 
     float            x_ref;
     float            ref_volts;

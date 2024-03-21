@@ -37,7 +37,6 @@ float get_adc_digital_filter(const int n_size, int delay_Microseconds) {
 }
 
 void get_gain(void){
-    float o_lux;
     float x_lux;
     float o; //voltage for zero light
     float x; //voltage for 3000 PWM
@@ -47,12 +46,12 @@ void get_gain(void){
     analogWrite(my()->LED_PIN, 0);
     delay(3000);
     o = analogRead(my()->LDR_port)*3.3/4095;
-    o_lux = Volt2LUX(o);
+    my()->o_lux = Volt2LUX(o);
     analogWrite(my()->LED_PIN, 3000);
     delay(3000);
     x = analogRead(my()->LDR_port)*3.3/4095;
     x_lux = Volt2LUX(x);
-    my()->gain = (x_lux - o_lux) / 3000;
+    my()->gain = (x_lux - my()->o_lux) / 3000;
     Serial.print("Gain: "); Serial.println(my()->gain, 10);
     delay(1000);
 }

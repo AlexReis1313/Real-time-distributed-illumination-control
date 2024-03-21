@@ -4,11 +4,11 @@
 
 #define SAMPLE_TIME_MILIS 10 //frequency 100Hz
 
-class metrics {
+class Metrics {
     public:
-        metrics();
-        ~metrics();
-        void    setEnergyConsumption(float new_duty_cicle);
+        Metrics();
+        ~Metrics();
+        void    setEnergyConsumption(float current_duty_cycle);
         float   getEnergyConsumption();
         void    setVisibilityError(float x_ref, float x_real);
         float   getVisibilityError();
@@ -16,6 +16,8 @@ class metrics {
         float   getMaxPower();
         void    setAverageFlicker(float current_duty_cycle);
         float   getAverageFlicker();
+        void    updateMetrics(float x_ref, float x_real, float new_duty_cycle);
+
     private:
         float   average_flicker;
         float   flicker_sum;
@@ -27,6 +29,7 @@ class metrics {
 
         float   max_power;
         int     n_samples;
+        int     n_sample_flicker;
         float   duty_cicle_prev;
         float   luminance_prev;
 

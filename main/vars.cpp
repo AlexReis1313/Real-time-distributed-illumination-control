@@ -40,6 +40,10 @@ void vars_setup(void){
     //Parser variables
     my()->my_parser = Parser(my()->x_ref, my()->LED_PIN);
 
+    //Metrics variables
+    my()->my_metrics = Metrics();
+
+
 
 }
 

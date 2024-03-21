@@ -35,7 +35,7 @@ void loop() {
     time_vars()->current_time = millis();
     if (time_vars()->current_time - time_vars()->last_control_time >= time_vars()->control_interval) {
         
-        my()->vss = get_adc_digital_filter(20, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+        my()->vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         my()->vss_lux = Volt2LUX(my()->vss); //Get LDR value in lux
 
         get_H_xref();
@@ -48,15 +48,16 @@ void loop() {
 
         Serial.print(my()->x_ref); Serial.print(" ");
         Serial.print(my()->vss_lux); Serial.print(" ");
-        Serial.println(my()->u * my()->gain + 0.02);
+        Serial.println(my()->u * my()->gain + my()->o_lux);
         //total_time = millis() - time_vars()->current_time;
         //Serial.print("Total time: "); Serial.println(total_time, 10);
         //delay(2000);
+        float percnt_dutycycle = my()->u / my()->DAC_RANGE;
+        my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
         time_vars()->last_control_time = time_vars()->current_time;
 
     }
 }
-
 
 //---------------------------------CAN BUS---------------------------------
 //the interrupt service routine
