@@ -9,10 +9,13 @@
 #include <stdio.h>
 #include <algorithm>
 #include <vector>
-#include <hardware/flash.h> //for flash_get_unique_id
+
+#include <hardware/flash.h>
 #include "mcp2515.h"
-#include "parser.hpp"
+
 #include "pid.h"
+#include "parser.hpp"
+#include "metrics.hpp"
 
 typedef struct s_data		t_data;
 typedef struct s_time_vars  t_time_vars;
@@ -52,7 +55,11 @@ struct s_time_vars
     unsigned long       current_time; 
 };
 
-// Can-bus setup
+void                    vars_setup(void);
+t_time_vars             *time_vars(void);
+t_data                  *my(void);
+void                    time_vars_setup(void);
+
 extern uint8_t         this_pico_flash_id[8], node_address;
 extern struct can_frame canMsgTx, canMsgRx;
 extern unsigned long   counterTx, counterRx;
@@ -62,21 +69,5 @@ extern unsigned long   write_delay;
 extern const byte      interruptPin;
 extern volatile byte   data_available;
 extern MCP2515         can0;
-
-extern float           voltage[400];
-extern int             my_time[400];
-
-float       Volt2LUX(float v_in);
-float       LUX2Volt(float LUX_in);
-void        calculate_tau(float voltage[], int my_time[], int i);
-void        get_H_xref(); //x_ref is in lux
-void        get_H_x();
-void        get_gain();
-
-void        vars_setup(void);
-t_time_vars *time_vars(void);
-t_data      *my(void);
-void        time_vars_setup(void);
-
 
 #endif

@@ -1,6 +1,7 @@
 // Done by Duarte 13/03/2024
 
 #include "includes/vars.h"
+#include "includes/aux.h"
 
 //k = 1500, tau = 0.263/10;
 
@@ -11,65 +12,40 @@ void setup() {
     analogWriteRange(4096); //Max PWM
     vars_setup();
     time_vars_setup();
-    my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)));
-        
+    my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)));    
 }
-
-
-float get_adc_digital_filter(const int n_size, int delay_Microseconds) {
-    float arr[n_size];
-    int mid_index;
-    float m_median;
-    for (size_t i = 0; i < n_size; i++) { // 10 microseconds delay between measurements
-        arr[i] = analogRead(my()->LDR_port);
-        delayMicroseconds(delay_Microseconds);
-    }
-    std::sort(arr, arr + n_size); 
-    mid_index = n_size / 2;
-    if (!(n_size % 2)) {
-        m_median = (arr[mid_index - 1] + arr[mid_index]) / 2.0;
-    } else {
-        m_median = arr[int(mid_index)];
-    }    //Serial.print("H_xref: "); Serial.println(H_xref, 10);
-    return m_median;
-}
-
 
 bool inicial = false;
 float total_time;
 float t_final;
 
 void loop() {  
-//    if (!inicial) {
-//        Serial.begin();
-//        Serial.print("x_ref"); 
-//        Serial.print(" "); 
-//        Serial.print("vss_lux"); 
-//        Serial.print(" "); 
-//        Serial.println("u");
-//        inicial = true;
-//    }  
+    if (!inicial) {
+       Serial.begin(); Serial.print("x_ref"); Serial.print(" "); Serial.print("vss_lux"); Serial.print(" "); Serial.println("u"); inicial = true;
+    }  
     if (Serial.available()) 
     {
         String command = Serial.readStringUntil('\n');
         command.trim(); // Remove any whitespace
         my()->my_parser.parseCommand(command);
         my()->x_ref = my()->my_parser.getReference(0);
+        my()->ref_volts = LUX2Volt(my()->x_ref); 
     }
     
     time_vars()->current_time = millis();
     if (time_vars()->current_time - time_vars()->last_control_time >= time_vars()->control_interval) {
+        
         my()->vss = get_adc_digital_filter(20, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
-        my()->vss_lux = Volt2LUX(my()->vss);
+        my()->vss_lux = Volt2LUX(my()->vss); //Get LDR value in lux
+
         get_H_xref();
         get_H_x();
-        //my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)));
-        
-        my()->u = my()->my_pid.compute_control(my()->ref_volts, my()->vss);
-        analogWrite(my()->LED_PIN, (my()->u));
 
-        my()->ref_volts = LUX2Volt(my()->x_ref); 
+        my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k))); //Change b of controller based on the H_ref and H_x    
+        my()->u = my()->my_pid.compute_control(my()->ref_volts, my()->vss); // Compute control
+        analogWrite(my()->LED_PIN, (my()->u)); //Apply control signal to LED
         my()->my_pid.housekeep(my()->ref_volts, my()->vss);
+
         Serial.print(my()->x_ref); Serial.print(" ");
         Serial.print(my()->vss_lux); Serial.print(" ");
         Serial.println(my()->u * my()->gain + 0.02);
@@ -77,17 +53,18 @@ void loop() {
         //Serial.print("Total time: "); Serial.println(total_time, 10);
         //delay(2000);
         time_vars()->last_control_time = time_vars()->current_time;
+
     }
 }
 
 
 //---------------------------------CAN BUS---------------------------------
 //the interrupt service routine
-void read_interrupt(uint gpio, uint32_t events) {
-    data_available = true; 
-    //It simply sets a flag (data_available) to indicate 
-    //that new data is available for processing.
-}
+// void read_interrupt(uint gpio, uint32_t events) {
+//     data_available = true; 
+//     //It simply sets a flag (data_available) to indicate 
+//     //that new data is available for processing.
+// }
 
 // void setup() {
 //    flash_get_unique_id(this_pico_flash_id); //get unique ID - node address
