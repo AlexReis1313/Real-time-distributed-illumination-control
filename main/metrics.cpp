@@ -11,7 +11,7 @@ Metrics::~Metrics () {};
 void Metrics::setEnergyConsumption(float current_duty_cycle){
     current_time = millis();
     float delta_time = SAMPLE_TIME_MILIS * std::pow(10, -3);
-    nomimal_power = 0.021;
+    nomimal_power = 0.017;
     instant_power = nomimal_power * current_duty_cycle;
     total_energy_consumption += instant_power * delta_time;
     previous_time = current_time;
@@ -39,7 +39,8 @@ void Metrics::setVisibilityError(float x_ref, float x_real){
 
 void Metrics::setAverageFlicker(float current_duty_cycle) {
     float delta_duty_cycle = abs(current_duty_cycle - duty_cicle_prev);
-    if (delta_duty_cycle < 0.5) {
+    //if is less than 1% of the previous duty cycle, it is considered flicker
+    if (delta_duty_cycle > 0.01) {
         flicker_sum += delta_duty_cycle;
         this->n_sample_flicker++;
     }

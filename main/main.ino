@@ -3,8 +3,6 @@
 #include "includes/vars.h"
 #include "includes/aux.h"
 
-//k = 1500, tau = 0.263/10;
-
 void setup() {
     Serial.begin(115200);
     analogReadResolution(12);
@@ -15,13 +13,9 @@ void setup() {
     my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)));    
 }
 
-bool inicial = false;
-float total_time;
-float t_final;
-
-void loop() {  
-    if (!inicial) {
-       Serial.begin(); Serial.print("x_ref"); Serial.print(" "); Serial.print("vss_lux"); Serial.print(" "); Serial.println("u"); inicial = true;
+void loop() {
+    if (!my()->inicial) {
+       Serial.begin(); Serial.print("x_ref"); Serial.print(" "); Serial.print("vss_lux"); Serial.print(" "); Serial.println("u*G"); my()->inicial = true;
     }  
     if (Serial.available()) 
     {
@@ -46,16 +40,12 @@ void loop() {
         analogWrite(my()->LED_PIN, (my()->u)); //Apply control signal to LED
         my()->my_pid.housekeep(my()->ref_volts, my()->vss);
 
-        Serial.print(my()->x_ref); Serial.print(" ");
-        Serial.print(my()->vss_lux); Serial.print(" ");
-        Serial.println(my()->u * my()->gain + my()->o_lux);
-        //total_time = millis() - time_vars()->current_time;
-        //Serial.print("Total time: "); Serial.println(total_time, 10);
-        //delay(2000);
-        float percnt_dutycycle = my()->u / my()->DAC_RANGE;
-        my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
+        //Serial.print(my()->x_ref); Serial.print(" ");
+        //Serial.print(my()->vss_lux); Serial.print(" ");
+        //Serial.println(my()->u * my()->gain + my()->o_lux);
+        float percnt_dutycycle = ((my()->vss * 4095) / 3.3) / 4095;
+        //my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
         time_vars()->last_control_time = time_vars()->current_time;
-
     }
 }
 
@@ -68,9 +58,15 @@ void loop() {
 // }
 
 // void setup() {
+//    Serial.begin(115200);
+//    analogReadResolution(12);
+//    analogWriteFreq(30000); //30KHz
+//    analogWriteRange(4096); //Max PWM
+//    vars_setup();
+//    time_vars_setup();
 //    flash_get_unique_id(this_pico_flash_id); //get unique ID - node address
 //    node_address = this_pico_flash_id[7];
-//    Serial.begin(); 
+//    //Serial.begin(); 
 //    can0.reset();
 //    can0.setBitrate(CAN_1000KBPS); //Setting bitrate
 //    can0.setNormalMode(); 

@@ -18,11 +18,10 @@ void vars_setup(void){
     my()->m = -0.8;
 
     //Control variables //0, 10, 5
-    my()->k = 750 / 50; //300;
-    my()->b_factor = 5; 
-    my()->tau = 0.13 / 100; //0.263/10;
+    my()->k = 250; //300; 750/50
+    my()->tau = 0.19/10; //0.13 / 100
     my()->Tt = 1; //0.05;
-    get_gain();
+    get_gain(3000);
     get_H_xref();
     get_H_x();
     my()->b_controller = 1;
@@ -42,6 +41,8 @@ void vars_setup(void){
 
     //Metrics variables
     my()->my_metrics = Metrics();
+    my()->inicial = false;
+    my()->occupancy = true;
 
 
 
@@ -69,5 +70,3 @@ unsigned long   write_delay {1000};
 const byte      interruptPin {20};
 volatile byte   data_available {false};
 MCP2515         can0 {spi0, 17, 19, 16, 18, 10000000};
-
-

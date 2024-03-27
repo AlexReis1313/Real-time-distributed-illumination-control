@@ -34,7 +34,6 @@ struct s_data
 
     float            k;             //control variable
     float            b_controller;  //control variable
-    float            b_factor;      //control variable
     float            tau;           //tau = Ti
     float            gain;          //0.0041873786
     float            H_xref;        //0.0751975700 para ref=10
@@ -48,6 +47,8 @@ struct s_data
     float            ref_volts;
     float            vss;
     float            vss_lux;
+    bool             inicial;
+    bool             occupancy;
 };
 
 struct s_time_vars

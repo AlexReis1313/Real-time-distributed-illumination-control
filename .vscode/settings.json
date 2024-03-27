@@ -4,6 +4,7 @@
         "memory": "cpp",
         "functional": "cpp",
         "ostream": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "cmath": "cpp"
     }
 }

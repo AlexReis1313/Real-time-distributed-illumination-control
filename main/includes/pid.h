@@ -6,7 +6,7 @@
 class pid {
     private:
       float I, D, K, Ti, Tt, Td, b, h, y_old, N, b_old, Kold;
-      float P, u, error, ao;
+      float P, u, error, ao, duty_cycle, dutycycle_time;
       bool  feedforward, antiwindup;
       
     public:
@@ -15,12 +15,18 @@ class pid {
       pid(); //Default Constructor
       ~pid() {}; //Destructor
       float compute_control( float r, float y);
-      void housekeep( float r, float y);
+      void housekeep( float r, float y);  
       float saturate(float v, float ulow, float uhigh);
       void print_output(float u);
       void setBcontroller(float b_controller);
       void setFeedforward(bool value);
-      void setWindup(bool value);
+      bool getFeedforward();
+      bool getAntiWindup();
+      void setAntiWindup(bool value);
+      void setDutyCycle(int duty_cycle, float time);
+      float getDutyCycle();
+      float getLastVss();
+     
 };
 
 // inline means that it is expanded in code instead of 

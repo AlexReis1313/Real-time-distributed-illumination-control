@@ -7,7 +7,7 @@ float       LUX2Volt(float LUX_in);
 float       get_adc_digital_filter(const int n_size, int delay_Microseconds);
 void        get_H_xref(); //x_ref is in lux
 void        get_H_x();
-void        get_gain();
-void        calculate_tau(int i);
+void        get_gain(int value);
+void        calculate_tau(int ledOff, int ledOn);
 
 #endif

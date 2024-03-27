@@ -16,13 +16,15 @@ public:
     void          checkMenu(void);
     inline void   setReference(int i, float& val);
     float         getReference(int i); 
+    void          getters(char &item);
+
 
 private:
     float&        reference;
     float         current_luminaire;
     int           led_pin;
-    void          setDutyCycle(int& i, float& val);
-    void          getDutyCycle(int& i);
+    void          setDutyCycle(int &i, float& val);
+    int           getDutyCycle(int &i);
 };
 
 #endif

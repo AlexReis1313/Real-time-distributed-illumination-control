@@ -32,11 +32,11 @@ float get_adc_digital_filter(const int n_size, int delay_Microseconds) {
         m_median = (arr[mid_index - 1] + arr[mid_index]) / 2.0;
     } else {
         m_median = arr[int(mid_index)];
-    }    //Serial.print("H_xref: "); Serial.println(H_xref, 10);
+    }
     return m_median;
 }
 
-void get_gain(void){
+void get_gain(int value){ //value is a PWM of 3000
     float x_lux;
     float o; //voltage for zero light
     float x; //voltage for 3000 PWM
@@ -47,11 +47,11 @@ void get_gain(void){
     delay(3000);
     o = analogRead(my()->LDR_port)*3.3/4095;
     my()->o_lux = Volt2LUX(o);
-    analogWrite(my()->LED_PIN, 3000);
+    analogWrite(my()->LED_PIN, value);
     delay(3000);
     x = analogRead(my()->LDR_port)*3.3/4095;
     x_lux = Volt2LUX(x);
-    my()->gain = (x_lux - my()->o_lux) / 3000;
+    my()->gain = (x_lux - my()->o_lux) / value;
     Serial.print("Gain: "); Serial.println(my()->gain, 10);
     delay(1000);
 }
@@ -70,47 +70,40 @@ void get_H_x(void){
 //0.16 -> 1000
 //0.30 -> 3000
 //0.263 -> 4000
-void calculate_tau(int i = 0){
-    float           voltage[400];
-    int             my_time[400];
-    float vss;
-    bool read = false;
-    float new_vss;
-    int current;
+void calculate_tau(int ledOff, int ledOn){
+    int number_of_samples = 400;
+    int i, current, my_time[number_of_samples];
+    float vss, new_vss, voltage[number_of_samples];
 
-    memset(voltage, 0, sizeof(float) * 400); //clear array
-    memset(my_time, 0, sizeof(int) * 400);
-    analogWrite(my()->LED_PIN, 0); // set led PWM to 1
+    memset(voltage, 0, sizeof(float) * number_of_samples); //clear array
+    memset(my_time, 0, sizeof(int) * number_of_samples);
+    analogWrite(my()->LED_PIN, ledOff); // set inicial led PWM
     delay(1000);
     vss = analogRead(my()->LDR_port);
     delay(5000);
-    analogWrite(my()->LED_PIN, 4000); // set led PWM to 4000
+    analogWrite(my()->LED_PIN, ledOn); // set final led PWM
     int start_time = millis();
-
-    while((read == false) && i < 400)
+    while(i < number_of_samples)
     {
       new_vss = analogRead(my()->LDR_port)*3.3/4095;
-      if(abs(vss - new_vss)/ new_vss <= 0.000001f)
-         read = true;
+      if(abs(vss - new_vss)/ new_vss <= 0.001f){ break; }
       voltage[i] = new_vss;
-      current = millis();
-      my_time[i] = current - start_time;
-      Serial.print(my_time[i]);Serial.print(" ");
-      Serial.print(vss);
-      Serial.println();
+      my_time[i] = millis() - start_time;
       vss = new_vss;
-      delay(20); //delay 1micro seconds,more precise with less time
+      delay(20); 
       i++;
     }
     float voltage_tau = voltage[i-1] * 0.63;
     float tau;
-    for(i = 0; i < 400; i++){
-     if(voltage[i] > voltage_tau){
-       tau = my_time[i];
-       break;
-     }
+    for(i = 0; i < number_of_samples; i++){
+        if(voltage[i] > voltage_tau){
+            tau = my_time[i];
+            break;
+        }
     }
-    Serial.print("Tau is (s): "); Serial.print(tau / 1000, 10);
-    Serial.println();
+    Serial.print("Tau is (s): "); Serial.println(tau / 1000, 30);
     delay(5000); //5s
-    }
+}
+
+
+
