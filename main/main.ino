@@ -46,6 +46,8 @@ void loop() {
     }
 }
 
+//cona
+
 //---------------------------------CAN BUS---------------------------------
 //the interrupt service routine
 // void read_interrupt(uint gpio, uint32_t events) {
