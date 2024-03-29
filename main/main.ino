@@ -1,7 +1,7 @@
 // Done by Duarte 13/03/2024
-
 #include "includes/vars.h"
 #include "includes/aux.h"
+#include "includes/vars_can_bus.h"
 
 void setup() {
     Serial.begin(115200);
@@ -9,7 +9,6 @@ void setup() {
     analogWriteFreq(30000); //30KHz
     analogWriteRange(4096); //Max PWM
     vars_setup();
-    time_vars_setup();
     my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)));    
 }
 
@@ -26,8 +25,8 @@ void loop() {
         my()->ref_volts = LUX2Volt(my()->x_ref); 
     }
     
-    time_vars()->current_time = millis();
-    if (time_vars()->current_time - time_vars()->last_control_time >= time_vars()->control_interval) {
+    my()->current_time = millis();
+    if (my()->current_time - my()->last_control_time >= my()->control_interval) {
         
         my()->vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         my()->vss_lux = Volt2LUX(my()->vss); //Get LDR value in lux
@@ -40,12 +39,10 @@ void loop() {
         analogWrite(my()->LED_PIN, (my()->u)); //Apply control signal to LED
         my()->my_pid.housekeep(my()->ref_volts, my()->vss);
 
-        //Serial.print(my()->x_ref); Serial.print(" ");
-        //Serial.print(my()->vss_lux); Serial.print(" ");
-        //Serial.println(my()->u * my()->gain + my()->o_lux);
-        float percnt_dutycycle = ((my()->vss * 4095) / 3.3) / 4095;
+        print_vars();
+        //float percnt_dutycycle = ((my()->vss * 4095) / 3.3) / 4095;
         //my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
-        time_vars()->last_control_time = time_vars()->current_time;
+        my()->last_control_time = my()->current_time;
     }
 }
 

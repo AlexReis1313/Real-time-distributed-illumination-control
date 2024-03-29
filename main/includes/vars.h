@@ -10,9 +10,6 @@
 #include <algorithm>
 #include <vector>
 
-#include <hardware/flash.h>
-#include "mcp2515.h"
-
 #include "pid.h"
 #include "parser.hpp"
 #include "metrics.hpp"
@@ -32,12 +29,12 @@ struct s_data
     Parser           my_parser;
     Metrics          my_metrics;
 
-    float            k;             //control variable
-    float            b_controller;  //control variable
-    float            tau;           //tau = Ti
-    float            gain;          //0.0041873786
-    float            H_xref;        //0.0751975700 para ref=10
-    float            H_x;           //0.0592132099 para ref=10
+    float            k;             
+    float            b_controller;  
+    float            tau;           
+    float            gain;          
+    float            H_xref;        
+    float            H_x;           
     float            u;
     float            Tt;
 
@@ -49,29 +46,13 @@ struct s_data
     float            vss_lux;
     bool             inicial;
     bool             occupancy;
-};
 
-struct s_time_vars
-{
-    //For void loop
-    unsigned long       last_control_time;
-    unsigned long       control_interval;
-    unsigned long       current_time; 
+    unsigned long    control_interval;
+    unsigned long    last_control_time;
+    unsigned long    current_time;
 };
 
 void                    vars_setup(void);
-t_time_vars             *time_vars(void);
 t_data                  *my(void);
-void                    time_vars_setup(void);
-
-extern uint8_t         this_pico_flash_id[8], node_address;
-extern struct can_frame canMsgTx, canMsgRx;
-extern unsigned long   counterTx, counterRx;
-extern MCP2515::ERROR  err;
-extern unsigned long   time_to_write;
-extern unsigned long   write_delay;
-extern const byte      interruptPin;
-extern volatile byte   data_available;
-extern MCP2515         can0;
 
 #endif

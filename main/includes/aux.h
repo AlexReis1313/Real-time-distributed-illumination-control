@@ -9,5 +9,6 @@ void        get_H_xref(); //x_ref is in lux
 void        get_H_x();
 void        get_gain(int value);
 void        calculate_tau(int ledOff, int ledOn);
+void        print_vars();
 
 #endif

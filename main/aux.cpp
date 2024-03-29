@@ -67,9 +67,6 @@ void get_H_x(void){
     my()->H_x = (my()->vss / my()->vss_lux);
 }
 
-//0.16 -> 1000
-//0.30 -> 3000
-//0.263 -> 4000
 void calculate_tau(int ledOff, int ledOn){
     int number_of_samples = 400;
     int i, current, my_time[number_of_samples];
@@ -105,5 +102,10 @@ void calculate_tau(int ledOff, int ledOn){
     delay(5000); //5s
 }
 
+void print_vars() {
+    Serial.print(my()->x_ref); Serial.print(" ");
+    Serial.print(my()->vss_lux); Serial.print(" ");
+    Serial.println(my()->u * my()->gain + my()->o_lux);
+}
 
 

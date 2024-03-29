@@ -29,7 +29,6 @@ void vars_setup(void){
 
     //Controller variables
     my()->my_pid = pid(0.01, my()->k, my()->b_controller, my()->tau, my()->Tt); 
-    //my()->my_pid = pid(0.01, 20, 1, 0.05);
     
     //Reference variables
     my()->x_ref = 10;
@@ -44,20 +43,7 @@ void vars_setup(void){
     my()->inicial = false;
     my()->occupancy = true;
 
-
-
-}
-
-t_time_vars *time_vars(void){ //multithreading advantages; null inicialization; encapsulation, redability
-    static t_time_vars my_time_data;
-
-    return (&my_time_data);
-};
-
-
-void time_vars_setup(void){
-    time_vars()->control_interval = 10;
-   
+    my()->control_interval = 10;
 }
 
 // Can-bus setup
