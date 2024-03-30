@@ -3,11 +3,10 @@
 
 t_data *my(void){ //multithreading advantages; null inicialization; encapsulation, redability
     static t_data my_data;
-
     return (&my_data);
 }
 
-void vars_setup(void){
+void vars_setup(void){    
     //Hardware variables
     my()->LED_PIN = 15;
     my()->LDR_port = A0;
@@ -29,6 +28,7 @@ void vars_setup(void){
 
     //Controller variables
     my()->my_pid = pid(0.01, my()->k, my()->b_controller, my()->tau, my()->Tt); 
+    my()->my_pid.setBcontroller((1 / (my()->H_xref * my()->gain * my()->k)));    
     
     //Reference variables
     my()->x_ref = 10;
@@ -43,16 +43,6 @@ void vars_setup(void){
     my()->inicial = false;
     my()->occupancy = true;
 
+    //Time variables
     my()->control_interval = 10;
 }
-
-// Can-bus setup
-uint8_t         this_pico_flash_id[8], node_address;//node address(last byte of the flash ID)
-struct can_frame canMsgTx, canMsgRx;
-unsigned long   counterTx {0}, counterRx {0};
-MCP2515::ERROR  err;
-unsigned long   time_to_write;
-unsigned long   write_delay {1000};
-const byte      interruptPin {20};
-volatile byte   data_available {false};
-MCP2515         can0 {spi0, 17, 19, 16, 18, 10000000};
