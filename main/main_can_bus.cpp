@@ -41,6 +41,8 @@ info_msg extract_message(can_frame* frame) {
   result.type = (my_type)frame->data[1];
   result.sender = frame->data[0];
   memcpy(result.data, &frame->data[2], result.size);
+
+  //todo
   if (frame->can_dlc > 6)
     result.data[6] = (frame->can_id & 0x0000ff00) >> 8;
   if (frame->can_dlc > 7)

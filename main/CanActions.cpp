@@ -27,6 +27,7 @@ void CanManager::enqueue_message(uint8_t sender, my_type type, uint8_t *message,
     new_frame->can_id |= ((uint32_t) message[length - 1]) << 16;    
   new_frame->data[0] = canbus_vars.node_address;
   new_frame->data[1] = type;
+  //tell the other the action done
   rp2040.fifo.push_nb((uint32_t)new_frame);
 }
 
@@ -42,9 +43,9 @@ void offAction(info_msg &msg) {
 
 void setReferenceAction(info_msg &msg) {
     my()->x_ref = static_cast<float>(msg.data);
-    enqueue_message(msg.sender, msg.type, nullptr, 0);
+    enqueue_message(msg.sender, msg.type, msg.data, sizeof(msg.data));
 }
 
 void getReferenceAction(info_msg &msg) {
-    ;    
+    enqueue_message(msg.sender, msg.type, my()->x_ref, sizeof(my()->x_ref));
 }
