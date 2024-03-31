@@ -1,22 +1,9 @@
-#include "includes/vars.h"
 #include "includes/parser.hpp"
+#include "includes/CanManager.hpp"
+#include "includes/vars.h"
+#include "includes/aux.h"
 
-float default_reference = 10.0;
-Parser::Parser() : reference(default_reference), led_pin(0){
-    this->current_luminaire = analogRead(15);
-}
-Parser::Parser(float _reference, const int _led_pin) : reference(_reference),
-                                                        led_pin(_led_pin){
-     this->current_luminaire = analogRead(_led_pin);
-}
-
-Parser& Parser::operator=(const Parser& other) {
-    if (this != &other) {
-        this->reference = other.reference;
-        this->led_pin = other.led_pin;
-    }
-    return *this;
-}
+Parser::Parser() {}
 
 Parser::~Parser() {}
 
@@ -30,19 +17,10 @@ void Parser::parseCommand(const String& command) {
         return;
     }
     switch (cmd) {
-        case 'm':
-            if (command.length() == 1){
-              this->checkMenu();
-              Serial.println("ack");
-            }
-            else {
-               Serial.println("usage: 'm' ");
-            }
-            break;
-        case 'g': // Set duty cycle
+        case 'g': // Getters
             if (sscanf(command.c_str(), "g %c %f", &item, &val) == 2){
                 Serial.println("ack");
-                this->getters(item); //val = duty_cycle
+                this->getters(item);
             }
             else{
                 Serial.println("err");           
@@ -50,17 +28,20 @@ void Parser::parseCommand(const String& command) {
             break;
         case 'r':
             if (sscanf(command.c_str(), "r %d %f", &i, &val) == 2){
-                this->setReference(i, val);  
+                my()->x_ref = val;
+                my()->ref_volts = Volt2LUX(val);
+                //CanManager::enqueue_message(i, my_type::SET_REFERENCE, val, sizeof(val));
                 Serial.println("ack");
             }
             else {
                 Serial.println("err");
             }
             break;
-        case 'd':
+        case 'd': 
             if (sscanf(command.c_str(), "d %d %f", &i, &val) == 2){
-                this->setDutyCycle(i, val);  
+                my()->my_pid.setDutyCycle(val, 10); 
                 Serial.println("ack");
+                //CanManager::enqueue_message(i, my_type::SET_DUTY_CYCLE, val, sizeof(val));
             }
             else {
                 Serial.println("err");
@@ -106,10 +87,12 @@ void Parser::getters(char &item) {
     int flag = 0;
     switch (item) {
         case 'd':
-            result = this->getDutyCycle(i);
+            result = my()->u;
+            //CanManager::enqueue_message(i, my_type::GET_DUTY_CYCLE, result, sizeof(result));
             break;
         case 'r':
-            result = this->getReference(i);
+            result = my()->x_ref;
+            //CanManager::enqueue_message(i, my_type::GET_REFERENCE, result, sizeof(result));
             break;
         case 'o':
             result = my()->occupancy;
@@ -138,35 +121,4 @@ void Parser::getters(char &item) {
     else
         Serial.println(result);
     ;
-}
-
-
-void Parser::setDutyCycle(int &i, float &val) { //val (0, 4095)
-    my()->my_pid.setDutyCycle(val, 10);
-}
-
-int Parser::getDutyCycle(int &i) {
-    return my()->u;
-}
-
-inline void Parser::setReference(int i, float &val) {
-    this->reference = val;
-}
-
-float Parser::getReference(int i) {
-    return (this->reference);
-}
-
-void Parser::checkMenu(){
-    Serial.println("Command Menu:");
-    Serial.println("-------------");
-
-    //Duty cycle
-    Serial.println("Set directly the duty cycle of luminaire i:");
-    Serial.println("'d <i> <val>' - Set directly the duty cycle of luminaire i to val");
-    Serial.println("'g d <i>' - Show the duty cycle of the specified luminaire.");
- 
-    //Illuminance reference
-    Serial.println("'r <i> <val>' - Set the illuminance reference of luminaire i to val in LUX");
-    Serial.println("'g r <i>' - Show the illuminance reference of the specified luminaire.");
 }

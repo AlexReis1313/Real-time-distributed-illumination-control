@@ -2,12 +2,12 @@
 #include "vars_can_bus.h"
 #include <iostream>
 
-typedef void (*eventFunction)(process_msg_t& msg);
+typedef void (*eventFunction)(info_msg &msg);
 
 class CanManager {
     private:
         MCP2515 canController;
-        uint8_t interruptPin;
+        unsigned char* interruptPin;
         canBus_vars canbus_vars;
         volatile bool dataAvailable;
         struct can_frame canMsgTx, canMsgRx;
@@ -18,15 +18,16 @@ class CanManager {
         //Can Manager
         static CanManager *instance; // Static instance pointer for ISR access
         CanManager();
-        void        begin(long bitrate);
+        void        begin(char bitrate);
         void        flashIDsetup();
         void        canInterrupt();
         void        setUpFiltersAndMasks ();
         bool        receiveMessage(struct can_frame &msg);
         bool        data_available();
-        
-        void        sendMessage1to0(can_bus *frame, can_bus **ptr_frame);
-        void        enqueue_message(uint8_t sender, my_type type, uint8_t *message, std::size_t msg_size)
+
+        void        sendMessage1to0();
+        static      info_msg extract_message(can_frame *frame);
+        static      void enqueue_message(unsigned char* sender, my_type type, float data, unsigned char* size);
 
         //Can Actions
         void        createMap(void);

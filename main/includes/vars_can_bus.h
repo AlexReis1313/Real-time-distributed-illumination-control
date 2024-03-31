@@ -1,6 +1,5 @@
 #include <hardware/flash.h>
 #include "mcp2515.h"
-#include <iterator.h>
 #include <map>
 
 // Unique identifiers for inter-core communication commands
@@ -12,8 +11,8 @@ enum InterCoreCmd {
 
 // Can-bus setup
 struct canBus_vars {
-    uint8_t this_pico_flash_id[8];
-    uint8_t node_address;  // Node address (last byte of the flash ID)
+    unsigned char this_pico_flash_id[8];
+    unsigned char node_address;  // Node address (last byte of the flash ID)
     struct can_frame canMsgTx;
     struct can_frame canMsgRx;
     unsigned long counterTx;
@@ -23,7 +22,7 @@ struct canBus_vars {
     unsigned long write_delay;
     const byte interruptPin;
 
-    can_bus_vars() : counterTx(0), counterRx(0), write_delay(1000), interruptPin(20) {}
+    canBus_vars() : counterTx(0), counterRx(0), write_delay(1000), interruptPin(20) {}
 };
 
 enum my_type : uint8_t //needs to 8 bits
@@ -35,9 +34,9 @@ enum my_type : uint8_t //needs to 8 bits
   GET_DUTY_CYCLE,
   SET_REFERENCE,
   GET_REFERENCE, 
-}
+};
 
 struct info_msg {
   my_type type;
-  uint8_t size, sender, data[8];
+  unsigned char* size, sender, data[8];
 };

@@ -7,25 +7,13 @@
 
 class Parser {
 public:
-    Parser(float _reference, const int led_pin);
     Parser();
     ~Parser();
-    Parser(const Parser& other);
-    Parser& operator=(const Parser& other);
     void          parseCommand(const String& command);
     void          checkMenu(void);
     inline void   setReference(int i, float& val);
     float         getReference(int i); 
     void          getters(char &item);
-
-
-private:
-    float&        reference;
-    float         current_luminaire;
-    int           led_pin;
-    void          setDutyCycle(int &i, float& val);
-    int           getDutyCycle(int &i);
 };
-
 #endif
  

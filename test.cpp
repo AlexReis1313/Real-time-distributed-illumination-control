@@ -9,28 +9,28 @@ enum inter_core_cmds {
 };
 
 //Packs 4 bytes into an unsigned int
-uint32_t bytes_to_msg(uint8_t * b) {
+uint32_t bytes_to_msg(unsigned char* * b) {
     uint32_t b0 {b[0]}, b1 {b[1]},b2 {b[2]},b3 {b[3]};
     return b0 + (b1 << 8) + (b2 << 16) + (b3 << 24);
 }
 
 //Unpacks an unsigned int into its constituting 4 bytes
-void msg_to_bytes(uint32_t msg, uint8_t * bytes) {
+void msg_to_bytes(uint32_t msg, unsigned char* * bytes) {
     bytes[0] = msg; bytes[1] = (msg >> 8);
     bytes[2] = (msg >> 16); bytes[3] = (msg >> 24);
 }
 
 //Packs the CAN frame contents into an unsigned int
 uint32_t can_frame_to_msg(can_frame * frm) {
-    uint8_t b[4];
+    unsigned char* b[4];
     b[3] = ICC_READ_DATA; b[2] = frm->can_id;
     b[1] = frm->data[1]; b[0] = frm->data[0];
     return bytes_to_msg(b);
 }
 
 //Packs the CAN error flags into an unsigned int
-uint32_t error_flags_to_msg(uint8_t canintf, uint8_t eflg) {
-    uint8_t b[4];
+uint32_t error_flags_to_msg(unsigned char* canintf, unsigned char* eflg) {
+    unsigned char* b[4];
     b[3] = ICC_ERROR_DATA; b[2] = 0;
     b[1] = canintf; b[0] = eflg;
     return bytes_to_msg(b);
@@ -44,7 +44,7 @@ void print_message(int number, int node, int id, int val) {
 
 char canintf_str[] {"| MERRF | WAKIF | ERRIF | TX2IF | TX0IF | TX1IF | RX1IF | RX0IF | "};
 char eflg_str [] {"| RX1OV | RX0OV | TXBO | TXEP | RXEP | TXWAR | RXWAR | EWARN | "};
-void print_can_errors(uint8_t canintf, uint8_t eflg) {
+void print_can_errors(unsigned char* canintf, unsigned char* eflg) {
     Serial.println("-----------------------------------------------------------------");
     Serial.println( canintf_str );
     Serial.print("| ");
@@ -62,14 +62,14 @@ void print_can_errors(uint8_t canintf, uint8_t eflg) {
     Serial.println("-----------------------------------------------------------------");
 }
 
-uint8_t pico_flash_id[8];
-uint8_t node_address;
+unsigned char* pico_flash_id[8];
+unsigned char* node_address;
 unsigned long counterTx{0}, counterRx{0};
 unsigned long time_to_write;
 unsigned long write_delay {1000};
 bool detected_errors {false};
-uint8_t canintf_save {0};
-uint8_t eflg_save {0};
+unsigned char* canintf_save {0};
+unsigned char* eflg_save {0};
 void setup() {
     rp2040.idleOtherCore();
     //flash calls are unsafe if two cores are operating
@@ -80,7 +80,7 @@ void setup() {
     time_to_write = millis() + write_delay;
 }
 
-const uint8_t interruptPin {20};
+const unsigned char* interruptPin {20};
 MCP2515 can0 {spi0, 17, 19, 16, 18, 10000000};
 volatile bool got_irq {false};
 //the interrupt service routine for core 1
@@ -98,7 +98,7 @@ void setup1(){
 void loop() {
     can_frame frm;
     uint32_t msg;
-    uint8_t b[4];
+    unsigned char* b[4];
 
     if(Serial.available()) {
         int val = Serial.parseInt();
@@ -143,11 +143,11 @@ void loop() {
 void loop1() {
     can_frame frm;
     uint32_t msg;
-    uint8_t b[4];
+    unsigned char* b[4];
     //reading the can-bus and writing the fifo
     if(got_irq) {
         got_irq = false;
-        uint8_t irq = can0.getInterrupts();
+        unsigned char* irq = can0.getInterrupts();
         if(irq & MCP2515::CANINTF_RX0IF) {
             can0.readMessage( MCP2515::RXB0, &frm );
             rp2040.fifo.push_nb(can_frame_to_msg( &frm ) );
@@ -156,7 +156,7 @@ void loop1() {
             can0.readMessage(MCP2515::RXB1, &frm);
             rp2040.fifo.push_nb(can_frame_to_msg( &frm ) );
         }
-        uint8_t err = can0.getErrorFlags();
+        unsigned char* err = can0.getErrorFlags();
         rp2040.fifo.push_nb(error_flags_to_msg(irq, err));
     }
     //read fifo write bus
@@ -169,8 +169,8 @@ void loop1() {
         frm.data[0] = b[0];
         can0.sendMessage(&frm);
     }
-    uint8_t irq = can0.getInterrupts();
-    uint8_t err = can0.getErrorFlags();
+    unsigned char* irq = can0.getInterrupts();
+    unsigned char* err = can0.getErrorFlags();
     rp2040.fifo.push_nb(error_flags_to_msg(irq, err));
     }
 }

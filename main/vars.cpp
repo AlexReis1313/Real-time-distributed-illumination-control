@@ -36,7 +36,7 @@ void vars_setup(void){
     my()->vss_lux = Volt2LUX(my()->vss);
     my()->ref_volts = LUX2Volt(my()->x_ref);
     //Parser variables
-    my()->my_parser = Parser(my()->x_ref, my()->LED_PIN);
+    my()->my_parser = Parser();
 
     //Metrics variables
     my()->my_metrics = Metrics();
