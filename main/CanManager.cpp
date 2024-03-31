@@ -6,6 +6,8 @@ canBus_vars CanManager::canbus_vars;
 MCP2515 CanManager::canController(spi0, 17, 19, 16, 18, 10000000);
 volatile bool CanManager::dataAvailable = false;
 
+
+
 void CanManager::flashIDsetup() {
     rp2040.idleOtherCore();
     flash_get_unique_id(canbus_vars.this_pico_flash_id);
@@ -42,7 +44,7 @@ void CanManager::sendMessage1to0() {
         rp2040.fifo.push_nb(framePtrVal);
     }
     uint32_t poppedFrameAddress;
-    if(rp2040.fifo.pop_nb(&poppedFrameAddress)) { //message from 0 to 1 
+    if(rp2040.fifo.pop_nb(&poppedFrameAddress)) { 
         can_frame* poppedFrame = reinterpret_cast<can_frame*>(poppedFrameAddress);
         canController.sendMessage(poppedFrame);
         delete (poppedFrame);
@@ -72,9 +74,12 @@ bool CanManager::data_available() {
     return dataAvailable;
 }
 
+//Falta sistema de identificação do sender
+//type DONE
+
 //          1       2       3      4      5      6       7       8     (bytes) // 8*8 bits = 64bits
 // DATA | sender | type |  INT    INT    INT    INT  |       |       |
-void CanManager::enqueue_message(unsigned char sender, my_type type, unsigned char **message, std::size_t msg_size)
+void CanManager::enqueue_message(unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size)
 {
   can_frame *new_frame = new can_frame;
   std::size_t length = min(msg_size + 2, CAN_MAX_DLEN);
@@ -124,7 +129,7 @@ void CanManager::can_bus_rotine(void) {
             Serial.print("Type: "); Serial.print(it->first);
         }
     }
-    if (Serial.available()) 
+    if (Serial.available() && PICO_ID == HUB) 
     {
         String command = Serial.readStringUntil('\n');
         command.trim(); // Remove any whitespace

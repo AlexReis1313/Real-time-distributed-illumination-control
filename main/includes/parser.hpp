@@ -13,7 +13,7 @@ public:
     void          checkMenu(void);
     inline void   setReference(int i, float& val);
     float         getReference(int i); 
-    void          getters(char &item);
+    void          getters(char &item, int val);
 };
 #endif
  

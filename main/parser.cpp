@@ -20,7 +20,7 @@ void Parser::parseCommand(const String& command) {
         case 'g': // Getters
             if (sscanf(command.c_str(), "g %c %f", &item, &val) == 2){
                 Serial.println("ack");
-                this->getters(item);
+                this->getters(item, val);
             }
             else{
                 Serial.println("err");           
@@ -28,10 +28,15 @@ void Parser::parseCommand(const String& command) {
             break;
         case 'r':
             if (sscanf(command.c_str(), "r %d %f", &i, &val) == 2){
-                my()->x_ref = val;
-                my()->ref_volts = Volt2LUX(val);
-                //CanManager::enqueue_message(i, my_type::SET_REFERENCE, val, sizeof(val));
-                Serial.println("ack");
+                if (PICO_ID == HUB) {
+                    my()->x_ref = val;
+                    Serial.println("ack");
+                }
+                else {
+                    uint8_t new_data[6] = {0};
+                    memcpy(new_data, &(val), sizeof(val));
+                    CanManager::enqueue_message(PICO_ID, my_type::SET_REFERENCE, new_data, sizeof(val));
+                }
             }
             else {
                 Serial.println("err");
@@ -80,7 +85,7 @@ void Parser::parseCommand(const String& command) {
     }
 }
 
-void Parser::getters(char &item) {
+void Parser::getters(char &item, int val) {
     int i = 0;
     bool value;
     float result;
@@ -88,11 +93,15 @@ void Parser::getters(char &item) {
     switch (item) {
         case 'd':
             result = my()->u;
-            //CanManager::enqueue_message(i, my_type::GET_DUTY_CYCLE, result, sizeof(result));
             break;
         case 'r':
-            result = my()->x_ref;
-            //CanManager::enqueue_message(i, my_type::GET_REFERENCE, result, sizeof(result));
+            if (PICO_ID == HUB)
+                Serial.printf("r %d %lf\n", PICO_ID, my()->x_ref);
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_REFERENCE, new_data, sizeof(val));
+            }
             break;
         case 'o':
             result = my()->occupancy;
