@@ -1,4 +1,5 @@
 #include "includes/CanManager.hpp"
+#include "includes/aux.h"
 
 void CanManager::createMap(void) {
     _actionMap[my_type::OFF] = offAction;
@@ -12,12 +13,12 @@ void CanManager::createMap(void) {
 
 void onAction(info_msg &msg) {
     analogWrite(my()->LED_PIN, 4095);
-    CanManager::enqueue_message(&(msg.sender), my_type::ACK, 0.0, 0);
+    CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
 }
 
 void offAction(info_msg &msg) {
     analogWrite(my()->LED_PIN, 0);
-    CanManager::enqueue_message(&(msg.sender), my_type::ACK, 0.0, 0);
+    CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
 }
 
 void setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( unsigned char*)
@@ -26,9 +27,10 @@ void setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( unsigned char*
     my()->x_ref = x_ref_value;
     my()->ref_volts = Volt2LUX(x_ref_value);
 
-    CanManager::enqueue_message(&(msg.sender), msg.type, msg.data, sizeof(msg.data));
+    unsigned char* messagePointer = msg.data;
+    CanManager::enqueue_message(msg.sender, msg.type, &messagePointer, sizeof(float));
 }
 
 void getReferenceAction(info_msg &msg) {
-    CanManager::enqueue_message(&(msg.sender), msg.type, my()->x_ref, sizeof(my()->x_ref));
+    ;//CanManager::enqueue_message(&(msg.sender), msg.type, reinterpret_cast<unsigned char**>(my()->x_ref), sizeof(my()->x_ref));
 }

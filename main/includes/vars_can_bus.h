@@ -38,5 +38,6 @@ enum my_type : uint8_t //needs to 8 bits
 
 struct info_msg {
   my_type type;
-  unsigned char* size, sender, data[8];
+  size_t size;
+  unsigned char sender, data[8];
 };

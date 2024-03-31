@@ -1,12 +1,10 @@
 #include "includes/CanManager.hpp"
 
 CanManager *CanManager::instance = nullptr; // Initialize static instance pointer
-static std::map<int, eventFunction> _actionMap;
-
-CanManager::CanManager() : \
-    canController(spi0, 17, 19, 16, 18, 10000000), dataAvailable(false) {
-    instance = this; // Set the instance pointer for ISR access
-}
+std::map<int, eventFunction> CanManager::_actionMap;
+canBus_vars CanManager::canbus_vars;
+MCP2515 CanManager::canController(spi0, 17, 19, 16, 18, 10000000);
+volatile bool CanManager::dataAvailable = false;
 
 void CanManager::flashIDsetup() {
     rp2040.idleOtherCore();
@@ -19,10 +17,9 @@ void CanManager::begin(char bitrate) {
     // Initialize CAN controller
     canController.reset();
     canController.setNormalMode();
-    
     // Initialize interrupt pin for CAN-BUS messages
-    pinMode(canbus_vars.interruptPin, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(canbus_vars.interruptPin), ISR_wrapper, FALLING);
+    //pinMode(canbus_vars.interruptPin, INPUT_PULLUP);
+    //attachInterrupt(digitalPinToInterrupt(canbus_vars.interruptPin), ISR_wrapper, FALLING);
 }
 
 void CanManager::canInterrupt() {
@@ -31,19 +28,24 @@ void CanManager::canInterrupt() {
 
 void CanManager::sendMessage1to0() {    
     /* Two buffers (RXB0 and RXB1) */
-    can_frame frame, *ptr_frame;
+    can_frame frame;
+    uint32_t framePtrVal;
     unsigned char irq = canController.getInterrupts(); // Get the interrupt flags
     if (irq & MCP2515::CANINTF_RX0IF) { // Check if interrupt is from RXB0
-        canController.readMessage(MCP2515::RXB0, frame);
-        rp2040.fifo.push_nb(*frame);
+        canController.readMessage(MCP2515::RXB0, &frame);
+        framePtrVal = reinterpret_cast<uint32_t>(&frame);
+        rp2040.fifo.push_nb(framePtrVal);
     }
     if (irq & MCP2515::CANINTF_RX1IF) { // Check if interrupt is from RXB1
-        canController.readMessage(MCP2515::RXB1, frame);
-        rp2040.fifo.push_nb(*frame);
+        canController.readMessage(MCP2515::RXB1, &frame);
+        framePtrVal = reinterpret_cast<uint32_t>(&frame);
+        rp2040.fifo.push_nb(framePtrVal);
     }
-    if(rp2040.fifo.pop_nb((*ptr_frame))) { //message from 0 to 1 
-        canController.sendMessage((*ptr_frame));
-        delete (*ptr_frame);
+    uint32_t poppedFrameAddress;
+    if(rp2040.fifo.pop_nb(&poppedFrameAddress)) { //message from 0 to 1 
+        can_frame* poppedFrame = reinterpret_cast<can_frame*>(poppedFrameAddress);
+        canController.sendMessage(poppedFrame);
+        delete (poppedFrame);
     }
 }
 
@@ -70,10 +72,9 @@ bool CanManager::data_available() {
     return dataAvailable;
 }
 
-// 8*8 bits = 64bits
-//          1       2       3      4      5      6       7       8     (bytes)
+//          1       2       3      4      5      6       7       8     (bytes) // 8*8 bits = 64bits
 // DATA | sender | type |  INT    INT    INT    INT  |       |       |
-void CanManager::enqueue_message(unsigned char* sender, my_type type, unsigned char* *message, std::size_t msg_size)
+void CanManager::enqueue_message(unsigned char sender, my_type type, unsigned char **message, std::size_t msg_size)
 {
   can_frame *new_frame = new can_frame;
   std::size_t length = min(msg_size + 2, CAN_MAX_DLEN);
@@ -91,10 +92,10 @@ void CanManager::enqueue_message(unsigned char* sender, my_type type, unsigned c
   rp2040.fifo.push_nb((uint32_t)new_frame);
 }
 
-static info_msg CanManager::extract_message(can_frame* frame) {
+info_msg CanManager::extract_message(can_frame* frame) {
   info_msg result;
   memset(&result, 0, sizeof(result));
-  result.size = frame->can_dlc - 2;  
+  result.size = static_cast<size_t>(frame->can_dlc - 2);
   result.type = (my_type)frame->data[1];
   result.sender = frame->data[0];
   memcpy(result.data, &frame->data[2], result.size);
@@ -107,6 +108,29 @@ static info_msg CanManager::extract_message(can_frame* frame) {
   return result;
 }
 
+void CanManager::can_bus_rotine(void) {
+    can_frame *frame;
+
+    while (rp2040.fifo.available()) {
+        if (!rp2040.fifo.pop_nb((uint32_t *)&frame))
+            break;
+        info_msg pm = CanManager::extract_message(frame);
+        my_type message_type = pm.type;
+        unsigned char* data = pm.data;
+        
+        std::map<int, eventFunction>::iterator it = _actionMap.find(message_type);
+        if (_actionMap.find(message_type) != _actionMap.end()){
+            it->second(pm);
+            Serial.print("Type: "); Serial.print(it->first);
+        }
+    }
+    if (Serial.available()) 
+    {
+        String command = Serial.readStringUntil('\n');
+        command.trim(); // Remove any whitespace
+        my()->my_parser.parseCommand(command);
+    }
+}
 
 // static void CanManager::enqueue_message(unsigned char* sender, my_type type, unsigned char* *message, std::size_t msg_size) {
 //     can_frame frame;
