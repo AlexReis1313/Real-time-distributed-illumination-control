@@ -1,6 +1,6 @@
 // Done by Duarte 30/03/2024
 #include "includes/vars.h"
-#include "includes/aux.h"
+#include "includes/aux_functions.h"
 #include "includes/CanManager.hpp"
 
 void controller_rotine() {
@@ -32,7 +32,8 @@ void setup() {
     analogWriteFreq(30000); //30KHz
     analogWriteRange(4096); //Max PWM
     CanManager::flashIDsetup();
-
+    CanManager::checkHub();
+    
     //Setup controller, metrics and parser
     vars_setup();
 }

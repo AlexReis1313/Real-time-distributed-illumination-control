@@ -5,7 +5,7 @@
 typedef void (*eventFunction)(info_msg &msg);
 
 #define PICO_ID CanManager::canbus_vars.node_address
-#define HUB 'H'
+#define HUB CanManager::hub
 
 class CanManager {
     private:
@@ -17,6 +17,9 @@ class CanManager {
         //static void ISR_wrapper();
     public:
         static canBus_vars canbus_vars;
+        static unsigned char hub;
+        static bool hubFlag;
+        static bool hubFound;
         //Can Manager
         static CanManager *instance; // Static instance pointer for ISR access
         static void     begin(char bitrate);
@@ -30,6 +33,7 @@ class CanManager {
         static info_msg extract_message(can_frame *frame);
         static void     enqueue_message(unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size);
         static void     can_bus_rotine(void);
+        static void     checkHub();
 
         //Can Actions
         static void     createMap(void);
@@ -41,5 +45,6 @@ class CanManager {
         static void     setReferenceAction(info_msg &msg);
         static void     getReferenceAction(info_msg &msg);
         static void     serialGetReferenceAction(info_msg &msg);
+        static void     foundHubAction(info_msg &msg);
 
 };

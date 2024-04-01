@@ -1,5 +1,5 @@
 #include "includes/CanManager.hpp"
-#include "includes/aux.h"
+#include "includes/aux_functions.h"
 #include "includes/vars.h"
 
 void CanManager::createMap(void) {
@@ -11,23 +11,24 @@ void CanManager::createMap(void) {
     _actionMap[my_type::SET_REFERENCE] = setReferenceAction;
     _actionMap[my_type::GET_REFERENCE] = getReferenceAction;
     _actionMap[my_type::SERIAL_GET_REFERENCE] = serialGetReferenceAction;
+    _actionMap[my_type::FOUND_HUB] = foundHubAction;
 }
 
-void ackAction(info_msg &msg) {
+void CanManager::ackAction(info_msg &msg) {
     if (PICO_ID == HUB)
         Serial.println("ack");
 }
-void onAction(info_msg &msg) {
+void CanManager::onAction(info_msg &msg) {
     analogWrite(my()->LED_PIN, 4095);
     CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
 }
 
-void offAction(info_msg &msg) {
+void CanManager::offAction(info_msg &msg) {
     analogWrite(my()->LED_PIN, 0);
     CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
 }
 
-void setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( unsigned char*)
+void CanManager::setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( unsigned char*)
     if (*reinterpret_cast<unsigned int*>(msg.data) == PICO_ID) {
         float x_ref_value;
         memcpy(&x_ref_value, msg.data, sizeof(float)); // Copy bytes into x_ref_value
@@ -37,7 +38,7 @@ void setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( unsigned char*
     }
 }
 
-void getReferenceAction(info_msg &msg) {
+void CanManager::getReferenceAction(info_msg &msg) {
     if (*reinterpret_cast<unsigned int*>(msg.data) == PICO_ID) {
         msg.type = my_type::SERIAL_GET_REFERENCE;
         float x_ref_value = my()->x_ref;
@@ -47,7 +48,14 @@ void getReferenceAction(info_msg &msg) {
     }
 }
 
-void serialGetReferenceAction(info_msg &msg) {
+void CanManager::serialGetReferenceAction(info_msg &msg) {
     if (PICO_ID == HUB)
         Serial.printf("r %d %lf\n", msg.sender, msg.data, sizeof(float));
+}
+
+void CanManager::foundHubAction(info_msg &msg) {
+    bool hubValue;
+    memcpy(&hubValue, msg.data, sizeof(bool));
+    HUB = msg.sender;
+    CanManager::hubFound = hubValue;
 }

@@ -5,8 +5,9 @@ std::map<int, eventFunction> CanManager::_actionMap;
 canBus_vars CanManager::canbus_vars;
 MCP2515 CanManager::canController(spi0, 17, 19, 16, 18, 10000000);
 volatile bool CanManager::dataAvailable = false;
-
-
+unsigned char CanManager::hub = 0;
+bool CanManager::hubFlag = false;
+bool CanManager::hubFound = false;
 
 void CanManager::flashIDsetup() {
     rp2040.idleOtherCore();
@@ -134,6 +135,16 @@ void CanManager::can_bus_rotine(void) {
         String command = Serial.readStringUntil('\n');
         command.trim(); // Remove any whitespace
         my()->my_parser.parseCommand(command);
+    }
+}
+
+void CanManager::checkHub() {
+    if (Serial.available() > 0) {
+        CanManager::hubFlag = true;
+        CanManager::hubFound = true;
+        unsigned char *data;
+        memcpy(&data, &CanManager::hubFound, sizeof(CanManager::hubFound));
+        CanManager::enqueue_message(PICO_ID, my_type::FOUND_HUB, data, sizeof(PICO_ID));
     }
 }
 
