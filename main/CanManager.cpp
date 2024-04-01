@@ -117,7 +117,7 @@ void CanManager::can_bus_rotine(void) {
     can_frame *frame;
 
     while (rp2040.fifo.available()) {
-        if (!rp2040.fifo.pop_nb((uint32_t *)&frame))
+        if (!rp2040.fifo.pop_nb((uint32_t *)&frame)) 
             break;
         info_msg pm = CanManager::extract_message(frame);
         my_type message_type = pm.type;
