@@ -35,6 +35,7 @@ enum my_type : uint8_t //needs to 8 bits
   SET_REFERENCE,
   GET_REFERENCE, 
   SERIAL_GET_REFERENCE,
+  FOUND_HUB,
 };
 
 struct info_msg {
