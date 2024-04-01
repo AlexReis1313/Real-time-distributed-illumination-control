@@ -1,6 +1,6 @@
 // // Done by Duarte 13/03/2024
 // #include "includes/vars.h"
-// #include "includes/aux.h"
+// #include "includes/my_aux.h"
 // #include "includes/vars_can_bus.h"
 
 // void setup() {

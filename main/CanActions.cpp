@@ -1,5 +1,5 @@
 #include "includes/CanManager.hpp"
-#include "includes/aux_functions.h"
+#include "includes/my_aux.h"
 #include "includes/vars.h"
 
 void CanManager::createMap(void) {

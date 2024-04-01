@@ -1,9 +1,15 @@
 // Done by Duarte 30/03/2024
 #include "includes/vars.h"
-#include "includes/aux_functions.h"
+#include "includes/my_aux.h"
 #include "includes/CanManager.hpp"
 
 void controller_rotine() {
+    if (Serial.available()) 
+    {
+        String command = Serial.readStringUntil('\n');
+        command.trim(); // Remove any whitespace
+        my()->my_parser.parseCommand(command);
+    }
     my()->current_time = millis();
     if (my()->current_time - my()->last_control_time >= my()->control_interval) {
         
@@ -45,7 +51,7 @@ void setup1() {
 }
 
 void loop() {
-    CanManager::can_bus_rotine();
+    //CanManager::can_bus_rotine();
     controller_rotine();
 }
 

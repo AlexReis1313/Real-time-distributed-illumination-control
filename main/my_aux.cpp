@@ -1,4 +1,4 @@
-#include "includes/aux.h"
+#include "includes/my_aux.h"
 #include "includes/vars.h"
 
 

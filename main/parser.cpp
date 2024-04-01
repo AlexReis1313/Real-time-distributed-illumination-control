@@ -1,7 +1,7 @@
 #include "includes/parser.hpp"
 #include "includes/CanManager.hpp"
 #include "includes/vars.h"
-#include "includes/aux.h"
+#include "includes/my_aux.h"
 
 Parser::Parser() {}
 

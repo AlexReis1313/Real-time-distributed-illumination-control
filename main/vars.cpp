@@ -1,5 +1,5 @@
 #include "includes/vars.h"
-#include "includes/aux.h"
+#include "includes/my_aux.h"
 
 t_data *my(void){ //multithreading advantages; null inicialization; encapsulation, redability
     static t_data my_data;
