@@ -1,5 +1,5 @@
 #include "includes/CanManager.hpp"
-#include "includes/my_aux.h"
+#include "includes/aux_functions.h"
 #include "includes/vars.h"
 
 void CanManager::createMap(void) {
@@ -54,8 +54,8 @@ void CanManager::serialGetReferenceAction(info_msg &msg) {
 }
 
 void CanManager::foundHubAction(info_msg &msg) {
-    bool hubValue;
-    memcpy(&hubValue, msg.data, sizeof(bool));
+    //bool hubValue =true;
+    //memcpy(&hubValue, msg.data, sizeof(bool));
     HUB = msg.sender;
-    CanManager::hubFound = hubValue;
+    CanManager::hubFound = true;
 }

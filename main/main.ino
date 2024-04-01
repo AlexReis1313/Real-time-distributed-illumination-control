@@ -1,15 +1,9 @@
 // Done by Duarte 30/03/2024
 #include "includes/vars.h"
-#include "includes/my_aux.h"
+#include "includes/aux_functions.h"
 #include "includes/CanManager.hpp"
 
 void controller_rotine() {
-    if (Serial.available()) 
-    {
-        String command = Serial.readStringUntil('\n');
-        command.trim(); // Remove any whitespace
-        my()->my_parser.parseCommand(command);
-    }
     my()->current_time = millis();
     if (my()->current_time - my()->last_control_time >= my()->control_interval) {
         
@@ -38,20 +32,24 @@ void setup() {
     analogWriteFreq(30000); //30KHz
     analogWriteRange(4096); //Max PWM
     CanManager::flashIDsetup();
-    CanManager::checkHub();
+    
     
     //Setup controller, metrics and parser
     vars_setup();
+    CanManager::wake_up_grid();
+
 }
 
 void setup1() {
     CanManager::flashIDsetup();
     CanManager::begin(CAN_1000KBPS);
     CanManager::setUpFiltersAndMasks();
+
 }
 
 void loop() {
-    //CanManager::can_bus_rotine();
+
+    CanManager::can_bus_rotine();
     controller_rotine();
 }
 
