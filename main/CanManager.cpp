@@ -25,11 +25,16 @@ void CanManager::begin(char bitrate) {
     //attachInterrupt(digitalPinToInterrupt(canbus_vars.interruptPin), ISR_wrapper, FALLING);
 }
 
+void CanManager::printID() {
+    Serial.print("Node address: ");
+    Serial.println(canbus_vars.node_address);
+}
+
 void CanManager::canInterrupt() {
     dataAvailable = true; // Set flag when CAN data is available
 }
 
-void CanManager::sendMessage1to0() {    
+void CanManager::canBusRotine() {    
     /* Two buffers (RXB0 and RXB1) */
     can_frame frame;
     uint32_t framePtrVal;
@@ -114,7 +119,7 @@ info_msg CanManager::extract_message(can_frame* frame) {
   return result;
 }
 
-void CanManager::can_bus_rotine(void) {
+void CanManager::serial_and_actions_rotine(void) {
     can_frame *frame;
 
     while (rp2040.fifo.available()) {
@@ -132,7 +137,7 @@ void CanManager::can_bus_rotine(void) {
     }
     if (Serial.available()) 
     {
-        if ( !(CanManager::hubFound)){ //if no hub has yet been found
+        if (!(CanManager::hubFound)){ //if no hub has yet been found
         CanManager::checkHub();         //define this pico as hub and warn other picos to stop looking for hubs
         }
         if (CanManager::hubFlag){ //if I am HUB
@@ -148,61 +153,57 @@ void CanManager::checkHub() {
     if (Serial.available() > 0) {
         CanManager::hubFlag = true;
         CanManager::hubFound = true;
-        //unsigned char *data;
-        //memcpy(&data, &CanManager::hubFound, sizeof(CanManager::hubFound));
-        //CanManager::enqueue_message(PICO_ID, my_type::FOUND_HUB, data, sizeof(PICO_ID));
-
-        //sugestion do chatgpt
         unsigned char data[sizeof(bool)];
         memcpy(data, &CanManager::hubFound, sizeof(bool));
+        HUB = PICO_ID;
         CanManager::enqueue_message(PICO_ID, my_type::FOUND_HUB, data, sizeof(bool));
     }
 }
 
 
-void CanManager::wake_up_grid() {
-        //initialize list_IDs with first array value equal to PICO_ID
-        nr_ckechIn_Node = 1
-        while(!(CanManager::check_wake_up_condition())){
+// void CanManager::wake_up_grid() {
+//         //initialize list_IDs with first array value equal to PICO_ID
+//         nr_ckechIn_Node = 1
+//         while(!(CanManager::check_wake_up_condition())){
         
-            my()->current_time = millis();
-            if (my()->current_time - my()->last_control_time >= my()->control_interval) {
-                unsigned char *data;
-                memcpy(&data, nr_ckechIn_Node, sizeof(int)));
-                CanManager::enqueue_message(PICO_ID, my_type::WakeUp, data, sizeof(PICO_ID));
-                my()->last_control_time = my()->current_time;
+//             my()->current_time = millis();
+//             if (my()->current_time - my()->last_control_time >= my()->control_interval) {
+//                 unsigned char *data;
+//                 memcpy(&data, nr_ckechIn_Node, sizeof(int)));
+//                 CanManager::enqueue_message(PICO_ID, my_type::WakeUp, data, sizeof(PICO_ID));
+//                 my()->last_control_time = my()->current_time;
 
-        }
+//         }
 
-        sort (list_IDS)
-        for i in range list_nodes
-        list_nodes.append(i)
+//         sort (list_IDS)
+//         for i in range list_nodes
+//         list_nodes.append(i)
 
-}
+// }
 
-bool CanManager::check_wake_up_condition(){
-    if (all values in list_Nr_detected_IDS are equal to nr_ckechIn_Nodes && nr_ckechIn_Nodes>1 )
-    return true
-    else 
-    return false
+// bool CanManager::check_wake_up_condition(){
+//     if (all values in list_Nr_detected_IDS are equal to nr_ckechIn_Nodes && nr_ckechIn_Nodes>1 )
+//     return true
+//     else 
+//     return false
 
-}
+// }
 
 
-void CanManager::WakeUpAction(info_msg &msg) {
+// void CanManager::WakeUpAction(info_msg &msg) {
     
-if (msg.sender is different from all values in list_IDs){
-    list_IDs.append(msg.sender) 
-    list_Nr_detected_IDS.append(msg.data)
+// if (msg.sender is different from all values in list_IDs){
+//     list_IDs.append(msg.sender) 
+//     list_Nr_detected_IDS.append(msg.data)
     
-    nr_ckechIn_Nodes =length(list_IDs) + 1
+//     nr_ckechIn_Nodes =length(list_IDs) + 1
 
 
-}
+// }
 
        
 
-}
+// }
 
 // static void CanManager::enqueue_message(unsigned char* sender, my_type type, unsigned char* *message, std::size_t msg_size) {
 //     can_frame frame;

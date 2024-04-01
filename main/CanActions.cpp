@@ -1,5 +1,5 @@
 #include "includes/CanManager.hpp"
-#include "includes/aux_functions.h"
+#include "includes/my_aux.h"
 #include "includes/vars.h"
 
 void CanManager::createMap(void) {
@@ -19,16 +19,19 @@ void CanManager::ackAction(info_msg &msg) {
         Serial.println("ack");
 }
 void CanManager::onAction(info_msg &msg) {
+    Serial.println("ON Action received");
     analogWrite(my()->LED_PIN, 4095);
     CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
 }
 
 void CanManager::offAction(info_msg &msg) {
+    Serial.println("OFF Action received");
     analogWrite(my()->LED_PIN, 0);
     CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
 }
 
 void CanManager::setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( unsigned char*)
+    Serial.println("Set Reference Action received");
     if (*reinterpret_cast<unsigned int*>(msg.data) == PICO_ID) {
         float x_ref_value;
         memcpy(&x_ref_value, msg.data, sizeof(float)); // Copy bytes into x_ref_value
@@ -39,6 +42,7 @@ void CanManager::setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( un
 }
 
 void CanManager::getReferenceAction(info_msg &msg) {
+    Serial.println("Get Reference Action received");
     if (*reinterpret_cast<unsigned int*>(msg.data) == PICO_ID) {
         msg.type = my_type::SERIAL_GET_REFERENCE;
         float x_ref_value = my()->x_ref;
@@ -49,11 +53,13 @@ void CanManager::getReferenceAction(info_msg &msg) {
 }
 
 void CanManager::serialGetReferenceAction(info_msg &msg) {
+    Serial.println("Serial Get Reference Action received");
     if (PICO_ID == HUB)
         Serial.printf("r %d %lf\n", msg.sender, msg.data, sizeof(float));
 }
 
 void CanManager::foundHubAction(info_msg &msg) {
+    Serial.println("Found Hub Action received");
     //bool hubValue =true;
     //memcpy(&hubValue, msg.data, sizeof(bool));
     HUB = msg.sender;

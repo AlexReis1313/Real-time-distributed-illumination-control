@@ -1,6 +1,6 @@
 // Done by Duarte 30/03/2024
 #include "includes/vars.h"
-#include "includes/aux_functions.h"
+#include "includes/my_aux.h"
 #include "includes/CanManager.hpp"
 
 void controller_rotine() {
@@ -33,10 +33,10 @@ void setup() {
     analogWriteRange(4096); //Max PWM
     CanManager::flashIDsetup();
     
-    
     //Setup controller, metrics and parser
     vars_setup();
-    CanManager::wake_up_grid();
+    //CanManager::wake_up_grid();
+    CanManager::printID();
 
 }
 
@@ -49,12 +49,12 @@ void setup1() {
 
 void loop() {
 
-    CanManager::can_bus_rotine();
+    CanManager::serial_and_actions_rotine();
     controller_rotine();
 }
 
 void loop1() {
-    CanManager::sendMessage1to0();
+    CanManager::canBusRotine();
 }
 
 

@@ -29,11 +29,13 @@ class CanManager {
         static bool     receiveMessage(struct can_frame &msg);
         static bool     data_available();
 
-        static void     sendMessage1to0();
+        static void     canBusRotine();
         static info_msg extract_message(can_frame *frame);
         static void     enqueue_message(unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size);
-        static void     can_bus_rotine(void);
+        static void     serial_and_actions_rotine(void);
         static void     checkHub();
+        static void     printID();
+
 
         //Can Actions
         static void     createMap(void);

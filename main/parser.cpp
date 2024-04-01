@@ -19,8 +19,8 @@ void Parser::parseCommand(const String& command) {
     switch (cmd) {
         case 'g': // Getters
             if (sscanf(command.c_str(), "g %c %f", &item, &val) == 2){
-                Serial.println("ack");
                 this->getters(item, val);
+                Serial.println("ack");
             }
             else{
                 Serial.println("err");           
@@ -28,7 +28,11 @@ void Parser::parseCommand(const String& command) {
             break;
         case 'r':
             if (sscanf(command.c_str(), "r %d %f", &i, &val) == 2){
-                if (PICO_ID == HUB) {
+                Serial.println(HUB);
+                Serial.println(PICO_ID);
+                delay(2000);
+                unsigned char data = static_cast<unsigned char>(val);
+                if (data == PICO_ID) {
                     my()->x_ref = val;
                     Serial.println("ack");
                 }
@@ -124,10 +128,4 @@ void Parser::getters(char &item, int val) {
             Serial.println("err");
             break;
     }
-    Serial.print("Result: "); 
-    if (flag == 1)
-        Serial.println(value);
-    else
-        Serial.println(result);
-    ;
 }
