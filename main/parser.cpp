@@ -12,6 +12,7 @@ void Parser::parseCommand(const String& command) {
     int i; //Led number pin
     float val;
     char item;
+    Serial.println("----------NEW COMMAND---------");
     if (command.length() == 0) {
         Serial.println("Command empty!");
         return;
@@ -20,26 +21,33 @@ void Parser::parseCommand(const String& command) {
         case 'g': // Getters
             if (sscanf(command.c_str(), "g %c %f", &item, &val) == 2){
                 this->getters(item, val);
-                Serial.println("ack");
+                //Serial.println("ack");
             }
             else{
                 Serial.println("err");           
             }
             break;
-        case 'r':
+        case 'r': //r 66 20 - (reference, pico_id, value)
             if (sscanf(command.c_str(), "r %d %f", &i, &val) == 2){
-                Serial.println(HUB);
-                Serial.println(PICO_ID);
-                delay(2000);
-                unsigned char data = static_cast<unsigned char>(val);
-                if (data == PICO_ID) {
+                //Serial.println("...........SETTER...............");
+                //Serial.print("PICO_ID: "); Serial.println(PICO_ID);
+                unsigned char i_char = static_cast<unsigned char>(i);
+                //Serial.print("i_char: "); Serial.println(i_char);
+                //Serial.print("val: "); Serial.println(val);
+                if (i_char == HUB) {
                     my()->x_ref = val;
-                    Serial.println("ack");
+                    Serial.print("New reference set: ");Serial.println(my()->x_ref); 
+                    //Serial.println("ack");
+                    //Serial.println("..........................");
                 }
                 else {
+                    //Serial.println("I am not that pico");
                     uint8_t new_data[6] = {0};
                     memcpy(new_data, &(val), sizeof(val));
-                    CanManager::enqueue_message(PICO_ID, my_type::SET_REFERENCE, new_data, sizeof(val));
+                    //Serial.print("Pico_id: ");Serial.println(i_char);
+                    //Serial.print("SEND message to set reference: ");Serial.println(val);
+                    //Serial.println("..........................");
+                    CanManager::enqueue_message(i_char, my_type::SET_REFERENCE, new_data, sizeof(val));
                 }
             }
             else {
@@ -95,16 +103,26 @@ void Parser::getters(char &item, int val) {
     float result;
     int flag = 0;
     switch (item) {
+        case 'I':
+            Serial.print("ID: "); Serial.println(PICO_ID);
         case 'd':
             result = my()->u;
             break;
         case 'r':
-            if (PICO_ID == HUB)
+            //Serial.println("------------GETTER-----------");
+            //Serial.print("HubFlag: "); Serial.println(CanManager::hubFlag);
+            //Serial.print("val: ");Serial.println(val);
+            //Serial.print("HUB: ");Serial.println(HUB);
+            if (val == HUB) {
                 Serial.printf("r %d %lf\n", PICO_ID, my()->x_ref);
+                //Serial.println("---------------------------");
+            }
             else {
                 uint8_t new_data[6] = {0};
                 memcpy(new_data, &(val), sizeof(val));
-                CanManager::enqueue_message(PICO_ID, my_type::GET_REFERENCE, new_data, sizeof(val));
+                //Serial.print("SEND message to get reference: ");Serial.println(val);
+                //Serial.println("---------------------------");  
+                CanManager::enqueue_message(PICO_ID, my_type::GET_REFERENCE, new_data, sizeof(new_data));
             }
             break;
         case 'o':

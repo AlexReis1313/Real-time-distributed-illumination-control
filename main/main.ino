@@ -20,7 +20,7 @@ void controller_rotine() {
         analogWrite(my()->LED_PIN, (my()->u)); //Apply control signal to LED
         my()->my_pid.housekeep(my()->ref_volts, my()->vss);
 
-        print_vars();
+        //print_vars();
         //float percnt_dutycycle = ((my()->vss * 4095) / 3.3) / 4095;
         //my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
         my()->last_control_time = my()->current_time;
@@ -40,6 +40,7 @@ void setup() {
     //CanManager::wake_up_grid();
     CanManager::wake_up_grid();
     CanManager::printID();
+    CanManager::createMap();
     distrControl::setUpGains();
 
 }
@@ -47,7 +48,7 @@ void setup() {
 void setup1() {
     CanManager::flashIDsetup();
     CanManager::begin(CAN_1000KBPS);
-    CanManager::setUpFiltersAndMasks();
+    //CanManager::setUpFiltersAndMasks();
 
 }
 
