@@ -30,11 +30,15 @@ class CanManager {
         static bool     data_available();
 
         static void     canBusRotine();
+        static void     canBUS_to_actions_rotine();
         static info_msg extract_message(can_frame *frame);
         static void     enqueue_message(unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size);
         static void     serial_and_actions_rotine(void);
         static void     checkHub();
         static void     printID();
+        static void     wake_up_grid();
+        static bool     check_wake_up_condition();
+        static void     acknoledge(char type);
 
 
         //Can Actions
@@ -48,5 +52,12 @@ class CanManager {
         static void     getReferenceAction(info_msg &msg);
         static void     serialGetReferenceAction(info_msg &msg);
         static void     foundHubAction(info_msg &msg);
+        static void     WakeUpAction(info_msg &msg);
+        static void     ackInternalAction(info_msg &msg);
+        static void     measureNOlightAction(info_msg &msg);
+        static void     measurelightAction(info_msg &msg);
+        static void     NotifyThisLightAction(info_msg &msg);
+        static void     EndGainsAction(info_msg &msg);
+        static void     loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size);
 
 };

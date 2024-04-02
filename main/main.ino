@@ -2,6 +2,8 @@
 #include "includes/vars.h"
 #include "includes/my_aux.h"
 #include "includes/CanManager.hpp"
+#include "includes/distrControl.hpp"
+
 
 void controller_rotine() {
     my()->current_time = millis();
@@ -36,7 +38,9 @@ void setup() {
     //Setup controller, metrics and parser
     vars_setup();
     //CanManager::wake_up_grid();
+    CanManager::wake_up_grid();
     CanManager::printID();
+    distrControl::setUpGains();
 
 }
 

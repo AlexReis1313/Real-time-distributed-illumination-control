@@ -1,4 +1,5 @@
 // Done by Duarte 13/03/2024
+#include <map> 
 
 #ifndef VARS_H
 #define VARS_H
@@ -51,6 +52,18 @@ struct s_data
     unsigned long    control_interval;
     unsigned long    last_control_time;
     unsigned long    current_time;
+    unsigned long    initial_time;
+
+    std::vector<int> list_Nr_detected_IDS; // List to store the number of detected IDs
+    std::vector<unsigned char> list_IDS; // List to store the IDs of other picos
+    std::vector<unsigned char> list_nodes; // List to store the IDs of other picos
+    std::vector<bool> list_Ack;
+    int nr_ckechIn_Nodes;
+    int THIS_NODE_NR;
+    std::map<unsigned char, int> id_to_node;
+    std::map<int, unsigned char> node_to_id;
+
+
 };
 
 void                    vars_setup(void);

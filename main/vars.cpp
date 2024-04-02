@@ -45,4 +45,9 @@ void vars_setup(void){
 
     //Time variables
     my()->control_interval = 10;
+
+    // Initialize list_Nr_detected_IDS and list_IDS
+    my()->list_Nr_detected_IDS.clear(); // Ensure the list is empty initially
+    my()->list_IDS.clear(); // Ensure the list is empty initially
+    my()->list_nodes.clear();
 }

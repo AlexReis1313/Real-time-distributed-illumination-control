@@ -149,6 +149,26 @@ void CanManager::serial_and_actions_rotine(void) {
     }
 }
 
+void CanManager::canBUS_to_actions_rotine(void) {
+    can_frame *frame;
+
+    while (rp2040.fifo.available()) {
+        if (!rp2040.fifo.pop_nb((uint32_t *)&frame)) 
+            break;
+        info_msg pm = CanManager::extract_message(frame);
+        my_type message_type = pm.type;
+        unsigned char* data = pm.data;
+        
+        std::map<int, eventFunction>::iterator it = _actionMap.find(message_type);
+        if (_actionMap.find(message_type) != _actionMap.end()){
+            it->second(pm);
+            Serial.print("Type: "); Serial.print(it->first);
+        }
+    }
+    
+}
+
+
 void CanManager::checkHub() {
     if (Serial.available() > 0) {
         CanManager::hubFlag = true;
@@ -161,45 +181,119 @@ void CanManager::checkHub() {
 }
 
 
-// void CanManager::wake_up_grid() {
-//         //initialize list_IDs with first array value equal to PICO_ID
-//         nr_ckechIn_Node = 1
-//         while(!(CanManager::check_wake_up_condition())){
-        
-//             my()->current_time = millis();
-//             if (my()->current_time - my()->last_control_time >= my()->control_interval) {
-//                 unsigned char *data;
-//                 memcpy(&data, nr_ckechIn_Node, sizeof(int)));
-//                 CanManager::enqueue_message(PICO_ID, my_type::WakeUp, data, sizeof(PICO_ID));
-//                 my()->last_control_time = my()->current_time;
 
-//         }
+void CanManager::acknoledge(char type){
+    unsigned char data[sizeof(int)]; //data does not hold anything
+    if (type = 'i'){ //internal ack
+        CanManager::enqueue_message(PICO_ID, my_type::ACKINTERNA, data, sizeof(data));
 
-//         sort (list_IDS)
-//         for i in range list_nodes
-//         list_nodes.append(i)
-
-// }
-
-// bool CanManager::check_wake_up_condition(){
-//     if (all values in list_Nr_detected_IDS are equal to nr_ckechIn_Nodes && nr_ckechIn_Nodes>1 )
-//     return true
-//     else 
-//     return false
-
-// }
-
-
-// void CanManager::WakeUpAction(info_msg &msg) {
+    }
+    else if (type ='e'){ //external ack
+        CanManager::enqueue_message(PICO_ID, my_type::ACK, data, sizeof(data));
+    }
+}
+void CanManager::loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size){
+    my()->last_control_time = 0;
+    my()->list_Ack.clear();
+    while(true){
+        my()->current_time = millis();
+        if (my()->current_time - my()->last_control_time >= my()->control_interval) {
+            CanManager::enqueue_message(sender, type, message, msg_size);
+            my()->last_control_time = millis();
+        }
+        CanManager::canBUS_to_actions_rotine();
+        // Check if the required number of acknowledgments has been received
+        int trueCount = 0;
+        for (bool ack : my()->list_Ack) {
+            if (ack)
+                trueCount++;
+        }
+        if (trueCount >= nrOfAcknoledge) {
+            break;
+        }
+    }
     
-// if (msg.sender is different from all values in list_IDs){
-//     list_IDs.append(msg.sender) 
-//     list_Nr_detected_IDS.append(msg.data)
+
+
+}
+void CanManager::wake_up_grid() {
+    // Initialize the number of nodes checked in with 1, since the current node is awake
+    my()->nr_ckechIn_Nodes = 1;
     
-//     nr_ckechIn_Nodes =length(list_IDs) + 1
+    // Record the initial time when the process started
+    my()->initial_time = millis();
+
+    my()->list_IDS.push_back((int)PICO_ID); //include my id in the list
+
+    // Keep looping until all nodes are awake and conditions are met
+    while (!CanManager::check_wake_up_condition()) {
+        // Get the current time
+        my()->current_time = millis();
+        // If it's time to send a wake-up message
+        if (my()->current_time - my()->last_control_time >= my()->control_interval) {
+            // Prepare the data to be sent in the wake-up message
+            unsigned char data[sizeof(int)];
+            memcpy(data, &my()->nr_ckechIn_Nodes, sizeof(int));
+            // Enqueue the wake-up message to be sent to all nodes
+            CanManager::enqueue_message(PICO_ID, my_type::WAKE_UP, data, sizeof(data));
+            // Update the last control time
+            my()->last_control_time = my()->current_time;
+        }
+        CanManager::canBUS_to_actions_rotine();
+
+    }   
+    Serial.println("Finished wake_up");
+    Serial.print("Nr of found nodes ");Serial.print(my()->nr_ckechIn_Nodes);Serial.print(" Nr id of my pico ");Serial.println((int)PICO_ID);
+
+    std::vector<int> int_vector;
+
+    // Convert char to int
+    for (char c : my()->list_IDS) {
+        int_vector.push_back(c - '0');
+    }
+
+    // Sort the vector
+    std::sort(int_vector.begin(), int_vector.end());
+    my()->list_IDS.clear();
+
+    // Convert int to char
+    for (int i : int_vector) {
+        my()->list_IDS.push_back(i + '0');
+    }
+
+    // Initialize list_nodes with values ranging from 0 to the size of list_IDS
+    for (int i = 0; i < my()->list_IDS.size(); i++) {
+        my()->list_nodes.push_back(i);
+    }
+
+    for (size_t i = 0; i < my()->list_IDS.size(); ++i) {
+        my()->id_to_node[my()->list_IDS[i]] = my()->list_nodes[i];
+    }
+
+    // Assuming PICO_ID is already defined somewhere
+    // You can retrieve the node number for PICO_ID like this:
+    my()->THIS_NODE_NR = my()->id_to_node[(int)PICO_ID];
+
+      // Create a map to associate node numbers with IDs
+    for (auto const &pair : my()->id_to_node) {
+        my()->node_to_id[pair.second] = pair.first;
+    }
+    my()->list_Ack.resize(my()->nr_ckechIn_Nodes - 1); //maximum nr of acknoledges is the size of the list
+}
 
 
-// }
+// Function to check if all nodes are awake and conditions are met
+bool CanManager::check_wake_up_condition() {
+    // Check if all detected IDs are equal to the number of checked in nodes
+
+
+    if (count(my()->list_Nr_detected_IDS.begin(), my()->list_Nr_detected_IDS.end(), my()->nr_ckechIn_Nodes) == my()->list_Nr_detected_IDS.size() &&
+        my()->nr_ckechIn_Nodes > 1 && millis() - my()->initial_time > 2000) {
+        return true;
+    }
+    return false;
+}
+
 
        
 
