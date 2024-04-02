@@ -55,12 +55,12 @@ void pid::setBcontroller (float b_controller){
 }
 
 void pid::setDutyCycle(int duty_cycle, float time){
-    my()->u = duty_cycle;
+    u = duty_cycle;
     this->dutycycle_time = time;
 }
 
 float pid::getDutyCycle(){
-    return my()->u;
+    return u;
 }
 
 float pid::getLastVss(){

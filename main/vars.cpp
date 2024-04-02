@@ -41,7 +41,7 @@ void vars_setup(void){
     //Metrics variables
     my()->my_metrics = Metrics();
     my()->inicial = false;
-    my()->occupancy = true;
+    my()->occupancy = false;
 
     //Time variables
     my()->control_interval = 10;

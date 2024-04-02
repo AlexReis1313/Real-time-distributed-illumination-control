@@ -9,14 +9,20 @@ void CanManager::createMap(void) {
     _actionMap[my_type::OFF] = offAction;
     _actionMap[my_type::ON] = onAction;
     _actionMap[my_type::ACK] = ackAction;
-    _actionMap[my_type::SET_DUTY_CYCLE] = setDutyCycleAction;
-    _actionMap[my_type::GET_DUTY_CYCLE] = getDutyCycleAction;
     _actionMap[my_type::ACKINTERNA] = ackInternalAction;
     //_actionMap[my_type::SET_DUTY_CYCLE] = setDutyCycleAction;
     //_actionMap[my_type::GET_DUTY_CYCLE] = getDutyCycleAction;
     _actionMap[my_type::SET_REFERENCE] = setReferenceAction;
+    _actionMap[my_type::SET_DUTY_CYCLE] = setDutyCycleAction;
+    _actionMap[my_type::SET_OCCUPANCY] = setOccupancyAction; 
     _actionMap[my_type::GET_REFERENCE] = getReferenceAction;
+    _actionMap[my_type::GET_DUTY_CYCLE] = getDutyCycleAction;
+    _actionMap[my_type::GET_ILUMINANCE] = getIluminanceAction;
+    _actionMap[my_type::GET_OCCUPANCY] = getOccupancyAction;
     _actionMap[my_type::SERIAL_GET_REFERENCE] = serialGetReferenceAction;
+    _actionMap[my_type::SERIAL_GET_DUTY_CYCLE] = serialGetDutyCycleAction;
+    _actionMap[my_type::SERIAL_GET_ILUMINANCE] = serialGetIluminanceAction;
+    _actionMap[my_type::SERIAL_GET_OCCUPANCY] = serialGetOccupancyAction; 
     _actionMap[my_type::FOUND_HUB] = foundHubAction;
     _actionMap[my_type::WAKE_UP] = WakeUpAction;
    _actionMap[my_type::MeasureNoLights] = measureNOlightAction;
@@ -35,7 +41,7 @@ void CanManager::ackAction(info_msg &msg) {
     if (PICO_ID == HUB){
         Serial.println("ACTION::ACK Action received");
     }
-    enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
+    //enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
 }
 
 
@@ -187,7 +193,6 @@ void CanManager::offAction(info_msg &msg) {
 }
 
 //Setters
-
 void CanManager::setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( unsigned char*)
     float value;
     memcpy(&value, msg.data, sizeof(float));
@@ -204,6 +209,31 @@ void CanManager::setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( un
     }
 }
 
+void CanManager::setDutyCycleAction(info_msg &msg) {
+    float value;
+    memcpy(&value, msg.data, sizeof(float));
+    if (msg.can_id == PICO_ID) {
+        Serial.println("ACTION::Set Duty Cycle Action received");
+        float time = 1; //time in seconds
+        my()->my_pid.setDutyCycle(value, time);
+        Serial.print("New duty cycle set: "); Serial.println(value);
+        Serial.print("Time (s): "); Serial.println(time);
+        CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
+    }
+}
+
+void CanManager::setOccupancyAction(info_msg &msg) {
+    float value;
+    memcpy(&value, msg.data, sizeof(float));
+    if (msg.can_id == PICO_ID) {
+        Serial.println("ACTION::Set Occupancy Action received");
+        my()->occupancy = (bool)value;
+        Serial.print("New occupancy set: "); Serial.println((bool)value);
+        CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
+        
+    }
+}
+
 //Getters
 void CanManager::getReferenceAction(info_msg &msg) {
     int value;
@@ -215,22 +245,46 @@ void CanManager::getReferenceAction(info_msg &msg) {
         //Serial.print("x_ref_value: "); Serial.println(my()->x_ref);
         unsigned char data[sizeof(float)];
         memcpy(data, &my()->x_ref, sizeof(my()->x_ref));
-        //Serial.println("------------------------------");
         CanManager::enqueue_message(PICO_ID, msg.type, data, sizeof(data));
     }
 }
 
-void CanManager::setDutyCycleAction(info_msg &msg) {
-    Serial.println("ACTION::Set Duty Cycle Action received");
-    float value;
-    memcpy(&value, msg.data, sizeof(float));
-    my()->my_pid.setDutyCycle(value, 1000);
-    CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
+void CanManager::getDutyCycleAction(info_msg &msg) {
+    int value;
+    memcpy(&value, msg.data, sizeof(int));
+    if (value == PICO_ID) {
+        Serial.println("ACTION::Get Duty Cycle Action received");
+        msg.type = my_type::SERIAL_GET_DUTY_CYCLE;
+        unsigned char data[sizeof(float)];
+        memcpy(data, &my()->u, sizeof(my()->u));
+        CanManager::enqueue_message(PICO_ID, msg.type, data, sizeof(data));
+    }
 }
 
+void CanManager::getIluminanceAction(info_msg &msg) {
+    int value;
+    memcpy(&value, msg.data, sizeof(int));
+    if (value == PICO_ID) {
+        Serial.println("ACTION::Get Iluminance Action received");
+        unsigned char data[sizeof(float)];
+        float light = analogRead(my()->LDR_port);
+        memcpy(data, &light, sizeof(light));
+        CanManager::enqueue_message(PICO_ID, my_type::SERIAL_GET_ILUMINANCE, data, sizeof(data));
+    }
+}
+
+void CanManager::getOccupancyAction(info_msg &msg) {
+    int value;
+    memcpy(&value, msg.data, sizeof(int));
+    if (value == PICO_ID) {
+        Serial.println("ACTION::Get Occupancy Action received");
+        unsigned char data[sizeof(float)];
+        memcpy(data, &my()->occupancy, sizeof(my()->occupancy));
+        CanManager::enqueue_message(PICO_ID, my_type::SERIAL_GET_OCCUPANCY, data, sizeof(data));
+    }
+}
 
 // Serials
-
 void CanManager::serialGetReferenceAction(info_msg &msg) {
     Serial.println("ACTION::SERIAL Get Reference Action received");
     float value;
@@ -241,6 +295,37 @@ void CanManager::serialGetReferenceAction(info_msg &msg) {
     }
 }
 
+void CanManager::serialGetDutyCycleAction(info_msg &msg) {
+    Serial.println("ACTION::SERIAL Get Duty Cycle Action received");
+    float value;
+    memcpy(&value, msg.data, sizeof(float));
+    if (PICO_ID == HUB) {
+        Serial.printf("d %d %lf\n", msg.sender, value);
+        Serial.println("ack");
+    }
+}
+
+void CanManager::serialGetIluminanceAction(info_msg &msg) {
+    Serial.println("ACTION::SERIAL Get Iluminance Action received");
+    float value;
+    memcpy(&value, msg.data, sizeof(float));
+    if (PICO_ID == HUB) {
+        Serial.printf("l %d %lf\n", msg.sender, value);
+        Serial.println("ack");
+    }
+}
+
+void CanManager::serialGetOccupancyAction(info_msg &msg) {
+    Serial.println("ACTION::SERIAL Get Occupancy Action received");
+    bool value;
+    memcpy(&value, msg.data, sizeof(bool));
+    if (PICO_ID == HUB) {
+        Serial.printf("o %d %d\n", msg.sender, value);
+        Serial.println("ack");
+    }
+}
+
+// HUB
 void CanManager::foundHubAction(info_msg &msg) {
     Serial.println("ACTION::Found Hub Action received");
     HUB = msg.sender;

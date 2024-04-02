@@ -29,25 +29,15 @@ void Parser::parseCommand(const String& command) {
             break;
         case 'r': //r 66 20 - (reference, pico_id, value)
             if (sscanf(command.c_str(), "r %d %f", &i, &val) == 2){
-                //Serial.println("...........SETTER...............");
-                //Serial.print("PICO_ID: "); Serial.println(PICO_ID);
                 unsigned char i_char = static_cast<unsigned char>(i);
-                //Serial.print("i_char: "); Serial.println(i_char);
-                //Serial.print("val: "); Serial.println(val);
                 if (i_char == HUB) {
                     my()->x_ref = val;
                     Serial.print("New reference set: ");Serial.println(my()->x_ref); 
-                    //Serial.println("ack");
-                    //Serial.println("..........................");
                 }
                 else {
-                    //Serial.println("I am not that pico");
                     uint8_t new_data[6] = {0};
                     memcpy(new_data, &(val), sizeof(val));
-                    //Serial.print("Pico_id: ");Serial.println(i_char);
-                    //Serial.print("SEND message to set reference: ");Serial.println(val);
-                    //Serial.println("..........................");
-                    CanManager::enqueue_message(i_char, my_type::SET_REFERENCE, new_data, sizeof(val));
+                    CanManager::enqueue_message(i_char, my_type::SET_REFERENCE, new_data, sizeof(new_data));
                 }
             }
             else {
@@ -56,18 +46,35 @@ void Parser::parseCommand(const String& command) {
             break;
         case 'd': 
             if (sscanf(command.c_str(), "d %d %f", &i, &val) == 2){
-                my()->my_pid.setDutyCycle(val, 10); 
-                Serial.println("ack");
-                //CanManager::enqueue_message(i, my_type::SET_DUTY_CYCLE, val, sizeof(val));
+                unsigned char i_char = static_cast<unsigned char>(i);
+                if (i_char == HUB) {
+                    float time = 1000;
+                    my()->my_pid.setDutyCycle(val, 1000);
+                    Serial.print("New duty cycle set: "); Serial.println(val);
+                    Serial.print("Time: "); Serial.println(time);
+                }
+                else {
+                    uint8_t new_data[6] = {0};
+                    memcpy(new_data, &(val), sizeof(val));
+                    CanManager::enqueue_message(i_char, my_type::SET_DUTY_CYCLE, new_data, sizeof(new_data));
+                }
             }
             else {
                 Serial.println("err");
             }
             break;
-        case 'o':
+        case 'o': // Set occupancy
             if (sscanf(command.c_str(), "o %d %f", &i, &val) == 2){
-                my()->occupancy = (bool)val;
-                Serial.println("ack");
+                unsigned char i_char = static_cast<unsigned char>(i);
+                if (i_char == HUB) {
+                    my()->occupancy = (bool)val;
+                    Serial.println("ack");
+                }
+                else {
+                    uint8_t new_data[6] = {0};
+                    memcpy(new_data, &(val), sizeof(val));
+                    CanManager::enqueue_message(i_char, my_type::SET_OCCUPANCY, new_data, sizeof(new_data));
+                }
             }
             else {
                 Serial.println("err");
@@ -105,28 +112,47 @@ void Parser::getters(char &item, int val) {
     switch (item) {
         case 'I':
             Serial.print("ID: "); Serial.println(PICO_ID);
-        case 'd':
-            result = my()->u;
-            break;
-        case 'r':
-            //Serial.println("------------GETTER-----------");
-            //Serial.print("HubFlag: "); Serial.println(CanManager::hubFlag);
-            //Serial.print("val: ");Serial.println(val);
-            //Serial.print("HUB: ");Serial.println(HUB);
+        case 'd': //DUTY CYCLE
             if (val == HUB) {
-                Serial.printf("r %d %lf\n", PICO_ID, my()->x_ref);
-                //Serial.println("---------------------------");
+                Serial.printf("d %d %lf\n", PICO_ID, my()->u);
             }
             else {
                 uint8_t new_data[6] = {0};
                 memcpy(new_data, &(val), sizeof(val));
-                //Serial.print("SEND message to get reference: ");Serial.println(val);
-                //Serial.println("---------------------------");  
+                CanManager::enqueue_message(PICO_ID, my_type::GET_DUTY_CYCLE, new_data, sizeof(new_data));
+            }
+            break;
+        case 'r': //REFERENCE g r 66
+            if (val == HUB) {
+                Serial.printf("r %d %lf\n", PICO_ID, my()->x_ref);
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
                 CanManager::enqueue_message(PICO_ID, my_type::GET_REFERENCE, new_data, sizeof(new_data));
             }
             break;
-        case 'o':
-            result = my()->occupancy;
+        case 'l': //MEASURED LIGHT
+            float light;
+            if (val == HUB) {
+                light = analogRead(my()->LED_PIN);
+                Serial.printf("l %d %lf\n", PICO_ID, light);
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_ILUMINANCE, new_data, sizeof(new_data));
+            }
+            break;
+        case 'o': //OCCUPANCY
+            if (val == HUB) {
+                Serial.printf("o %d %d\n", PICO_ID, my()->occupancy);
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_OCCUPANCY, new_data, sizeof(new_data));
+            }
             break;
         case 'k':
             value = !my()->my_pid.getFeedforward();
