@@ -1,7 +1,7 @@
 #include "includes/CanManager.hpp"
 
 CanManager *CanManager::instance = nullptr; // Initialize static instance pointer
-std::map<int, eventFunction> CanManager::_actionMap;
+std::map<my_type, eventFunction> CanManager::_actionMap;
 canBus_vars CanManager::canbus_vars;
 MCP2515 CanManager::canController(spi0, 17, 19, 16, 18, 10000000);
 volatile bool CanManager::dataAvailable = false;
@@ -13,7 +13,7 @@ void CanManager::flashIDsetup() {
     rp2040.idleOtherCore();
     flash_get_unique_id(canbus_vars.this_pico_flash_id);
     rp2040.resumeOtherCore();
-    canbus_vars.node_address = canbus_vars.this_pico_flash_id[7];
+    canbus_vars.node_address = canbus_vars.this_pico_flash_id[6];
 }
 
 void CanManager::begin(char bitrate) {
@@ -39,18 +39,27 @@ void CanManager::canBusRotine() {
     can_frame frame;
     uint32_t framePtrVal;
     unsigned char irq = canController.getInterrupts(); // Get the interrupt flags
+    bool message_received = false;
     if (irq & MCP2515::CANINTF_RX0IF) { // Check if interrupt is from RXB0
+        Serial.println("READ FROM RX0IF");
         canController.readMessage(MCP2515::RXB0, &frame);
         framePtrVal = reinterpret_cast<uint32_t>(&frame);
         rp2040.fifo.push_nb(framePtrVal);
+        message_received = true;
     }
     if (irq & MCP2515::CANINTF_RX1IF) { // Check if interrupt is from RXB1
+        Serial.println("READ FROM RX1IF");
         canController.readMessage(MCP2515::RXB1, &frame);
         framePtrVal = reinterpret_cast<uint32_t>(&frame);
         rp2040.fifo.push_nb(framePtrVal);
+        message_received = true;
+    }
+    if (message_received) {
+        canController.clearInterrupts();
     }
     uint32_t poppedFrameAddress;
     if(rp2040.fifo.pop_nb(&poppedFrameAddress)) { 
+        Serial.println("SEND MESSAGE ");
         can_frame* poppedFrame = reinterpret_cast<can_frame*>(poppedFrameAddress);
         canController.sendMessage(poppedFrame);
         delete (poppedFrame);
@@ -100,6 +109,13 @@ void CanManager::enqueue_message(unsigned char sender, my_type type, unsigned ch
   new_frame->data[0] = canbus_vars.node_address;
   new_frame->data[1] = type;
   //tell the other the action done
+  //Serial.println("------------------------------------------------");
+  Serial.println("::Enqueue message::");
+  //Serial.print("can_id: "); Serial.println(new_frame->can_id);
+  //Serial.print("node address: "); Serial.println(new_frame->data[0]);
+  //Serial.print("type: "); Serial.println(new_frame->data[1]);
+  //Serial.println("------------------------------------------------");
+
   rp2040.fifo.push_nb((uint32_t)new_frame);
 }
 
@@ -109,6 +125,7 @@ info_msg CanManager::extract_message(can_frame* frame) {
   result.size = static_cast<size_t>(frame->can_dlc - 2);
   result.type = (my_type)frame->data[1];
   result.sender = frame->data[0];
+  result.can_id = frame->can_id;
   memcpy(result.data, &frame->data[2], result.size);
 
   //todo
@@ -128,11 +145,15 @@ void CanManager::serial_and_actions_rotine(void) {
         info_msg pm = CanManager::extract_message(frame);
         my_type message_type = pm.type;
         unsigned char* data = pm.data;
-        
-        std::map<int, eventFunction>::iterator it = _actionMap.find(message_type);
-        if (_actionMap.find(message_type) != _actionMap.end()){
-            it->second(pm);
-            Serial.print("Type: "); Serial.print(it->first);
+        //Serial.println("MESSAGE EXTRACTED");
+        //Serial.print("Message type: "); Serial.println(message_type);
+        //Serial.print("Sender: "); Serial.println(pm.sender);
+        std::map<my_type, eventFunction>::iterator it = _actionMap.find(message_type);
+        if (it != _actionMap.end()) {
+            //Serial.print("Action found for message type: "); Serial.println(static_cast<int>(message_type));
+            (*it).second(pm);
+        } else {
+            Serial.println("No action found for this message type.");
         }
     }
     if (Serial.available()) 
@@ -156,6 +177,7 @@ void CanManager::checkHub() {
         unsigned char data[sizeof(bool)];
         memcpy(data, &CanManager::hubFound, sizeof(bool));
         HUB = PICO_ID;
+        Serial.print("HUB:: I am the HUB: "); Serial.println(HUB);
         CanManager::enqueue_message(PICO_ID, my_type::FOUND_HUB, data, sizeof(bool));
     }
 }

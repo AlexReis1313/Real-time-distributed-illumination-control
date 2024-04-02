@@ -12,7 +12,7 @@ class CanManager {
         static MCP2515 canController;
         static unsigned char* interruptPin;
         static volatile bool dataAvailable;
-        static std::map<int, eventFunction> _actionMap;
+        static std::map<my_type, eventFunction> _actionMap;
         //struct can_frame canMsgTx, canMsgRx;
         //static void ISR_wrapper();
     public:

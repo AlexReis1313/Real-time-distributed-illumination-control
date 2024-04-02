@@ -42,4 +42,5 @@ struct info_msg {
   my_type type;
   size_t size;
   unsigned char sender, data[8];
+  unsigned char can_id;
 };
