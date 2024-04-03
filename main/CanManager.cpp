@@ -16,8 +16,7 @@ void CanManager::flashIDsetup() {
     canbus_vars.node_address = canbus_vars.this_pico_flash_id[6];
 }
 
-void CanManager::begin(char bitrate) {
-    // Initialize CAN controller
+void CanManager::begin(char bitrate) { // Initialize CAN controller
     canController.reset();
     canController.setNormalMode();
 }
@@ -38,14 +37,14 @@ void CanManager::canBusRotine() {
     unsigned char irq = canController.getInterrupts(); // Get the interrupt flags
     bool message_received = false;
     if (irq & MCP2515::CANINTF_RX0IF) { // Check if interrupt is from RXB0
-        Serial.println("READ FROM RX0IF");
+        //Serial.println("READ FROM RX0IF");
         canController.readMessage(MCP2515::RXB0, &frame);
         framePtrVal = reinterpret_cast<uint32_t>(&frame);
         rp2040.fifo.push_nb(framePtrVal);
         message_received = true;
     }
     if (irq & MCP2515::CANINTF_RX1IF) { // Check if interrupt is from RXB1
-        Serial.println("READ FROM RX1IF");
+        //Serial.println("READ FROM RX1IF");
         canController.readMessage(MCP2515::RXB1, &frame);
         framePtrVal = reinterpret_cast<uint32_t>(&frame);
         rp2040.fifo.push_nb(framePtrVal);
@@ -56,7 +55,7 @@ void CanManager::canBusRotine() {
     }
     uint32_t poppedFrameAddress;
     if(rp2040.fifo.pop_nb(&poppedFrameAddress)) { 
-        Serial.println("SEND MESSAGE ");
+        //Serial.println("SEND MESSAGE ");
         can_frame* poppedFrame = reinterpret_cast<can_frame*>(poppedFrameAddress);
         canController.sendMessage(poppedFrame);
         delete (poppedFrame);
@@ -86,9 +85,6 @@ bool CanManager::data_available() {
     return dataAvailable;
 }
 
-//Falta sistema de identificação do sender
-//type DONE
-
 //          1       2       3      4      5      6       7       8     (bytes) // 8*8 bits = 64bits
 // DATA | sender | type |  INT    INT    INT    INT  |       |       |
 void CanManager::enqueue_message(unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size)
@@ -105,14 +101,7 @@ void CanManager::enqueue_message(unsigned char sender, my_type type, unsigned ch
     new_frame->can_id |= ((uint32_t) message[length - 1]) << 16;    
   new_frame->data[0] = canbus_vars.node_address;
   new_frame->data[1] = type;
-  //tell the other the action done
-  //Serial.println("------------------------------------------------");
-  Serial.println("::Enqueue message::");
-  //Serial.print("can_id: "); Serial.println(new_frame->can_id);
-  //Serial.print("node address: "); Serial.println(new_frame->data[0]);
-  //Serial.print("type: "); Serial.println(new_frame->data[1]);
-  //Serial.println("------------------------------------------------");
-
+  //Serial.println("::Enqueue message::");
   rp2040.fifo.push_nb((uint32_t)new_frame);
 }
 
@@ -124,8 +113,6 @@ info_msg CanManager::extract_message(can_frame* frame) {
   result.sender = frame->data[0];
   result.can_id = frame->can_id;
   memcpy(result.data, &frame->data[2], result.size);
-
-  //todo
   if (frame->can_dlc > 6)
     result.data[6] = (frame->can_id & 0x0000ff00) >> 8;
   if (frame->can_dlc > 7)
@@ -142,9 +129,6 @@ void CanManager::serial_and_actions_rotine(void) {
         info_msg pm = CanManager::extract_message(frame);
         my_type message_type = pm.type;
         unsigned char* data = pm.data;
-        //Serial.println("MESSAGE EXTRACTED");
-        //Serial.print("Message type: "); Serial.println(message_type);
-        //Serial.print("Sender: "); Serial.println(pm.sender);
         std::map<my_type, eventFunction>::iterator it = _actionMap.find(message_type);
         if (it != _actionMap.end()) {
             //Serial.print("Action found for message type: "); Serial.println(static_cast<int>(message_type));
@@ -186,7 +170,6 @@ void CanManager::canBUS_to_actions_rotine(void) {
     
 }
 
-
 void CanManager::checkHub() {
     if (Serial.available() > 0) {
         CanManager::hubFlag = true;
@@ -198,8 +181,6 @@ void CanManager::checkHub() {
         CanManager::enqueue_message(PICO_ID, my_type::FOUND_HUB, data, sizeof(bool));
     }
 }
-
-
 
 void CanManager::acknoledge(char type){
     unsigned char data[sizeof(int)]; //data does not hold anything
@@ -231,10 +212,8 @@ void CanManager::loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type 
             break;
         }
     }
-    
-
-
 }
+
 void CanManager::wake_up_grid() {
     // Initialize the number of nodes checked in with 1, since the current node is awake
     my()->nr_ckechIn_Nodes = 1;
@@ -304,8 +283,6 @@ void CanManager::wake_up_grid() {
 // Function to check if all nodes are awake and conditions are met
 bool CanManager::check_wake_up_condition() {
     // Check if all detected IDs are equal to the number of checked in nodes
-
-
     if (count(my()->list_Nr_detected_IDS.begin(), my()->list_Nr_detected_IDS.end(), my()->nr_ckechIn_Nodes) == my()->list_Nr_detected_IDS.size() &&
         my()->nr_ckechIn_Nodes > 1 && millis() - my()->initial_time > 2000) {
         return true;
@@ -317,7 +294,6 @@ bool CanManager::check_wake_up_condition() {
        
 
 // }
-
 // static void CanManager::enqueue_message(unsigned char* sender, my_type type, unsigned char* *message, std::size_t msg_size) {
 //     can_frame frame;
 //     frame.can_id = canbus_vars.node_address;

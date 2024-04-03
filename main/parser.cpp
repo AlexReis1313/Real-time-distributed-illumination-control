@@ -12,7 +12,7 @@ void Parser::parseCommand(const String& command) {
     int i; //Led number pin
     float val;
     char item;
-    Serial.println("----------NEW COMMAND---------");
+    //Serial.println("----------NEW COMMAND---------");
     if (command.length() == 0) {
         Serial.println("Command empty!");
         return;
@@ -48,8 +48,8 @@ void Parser::parseCommand(const String& command) {
             if (sscanf(command.c_str(), "d %d %f", &i, &val) == 2){
                 unsigned char i_char = static_cast<unsigned char>(i);
                 if (i_char == HUB) {
-                    float time = 1000;
-                    my()->my_pid.setDutyCycle(val, 1000);
+                    float time = 1;
+                    my()->my_pid.setDutyCycle(val, 1);
                     Serial.print("New duty cycle set: "); Serial.println(val);
                     Serial.print("Time: "); Serial.println(time);
                 }
@@ -80,19 +80,85 @@ void Parser::parseCommand(const String& command) {
                 Serial.println("err");
             }
             break;
-        case 'k': // Set feedback control
-            if (sscanf(command.c_str(), "k %d %f", &i, &val) == 2){
-                my()->my_pid.setFeedforward((bool)!val); 
-                Serial.println("ack");
+        case 'a':
+            if (sscanf(command.c_str(), "a %d %f", &i, &val) == 2){
+                unsigned char i_char = static_cast<unsigned char>(i);
+                if (i_char == HUB) {
+                    my()->my_pid.setAntiWindup((bool)val);
+                    Serial.println("ack");
+                }
+                else {
+                    uint8_t new_data[6] = {0};
+                    memcpy(new_data, &(val), sizeof(val));
+                    CanManager::enqueue_message(i_char, my_type::SET_ANTI_WINDDUP, new_data, sizeof(new_data));
+                }
             }
             else {
                 Serial.println("err");
             }
             break;
-        case 'a':
-            if (sscanf(command.c_str(), "a %d %f", &i, &val) == 2){
-                my()->my_pid.setAntiWindup((bool)val);
-                Serial.println("ack");
+        case 'k': // Set feedback control
+            if (sscanf(command.c_str(), "k %c %d", &i, &val) == 2){
+                unsigned char i_char = static_cast<unsigned char>(i);
+                if (i_char == HUB) {
+                    my()->my_pid.setFeedback((bool)val);
+                    Serial.println("ack");
+                }
+                else {
+                    uint8_t new_data[6] = {0};
+                    memcpy(new_data, &(val), sizeof(val));
+                    CanManager::enqueue_message(i_char, my_type::SET_FEEDBACK, new_data, sizeof(new_data));
+                }
+            }
+            else {
+                Serial.println("err");
+            }
+            break;
+        case 's': //Start stream
+            int value;
+            if (sscanf(command.c_str(), "s %c %d", &i, &value) == 2){
+                unsigned char lil = static_cast<unsigned char>(i);
+                if (lil == 'l') {
+                    if (value == HUB) {
+                        my()->stream_lux = true;
+                    }
+                    else {
+                        CanManager::enqueue_message(value, my_type::START_STREAM_LUX, nullptr, 0);
+                    }
+                }
+                else if (lil == 'd') {
+                    if (value == HUB) {
+                        my()->stream_duty_cycle = true;
+                    }
+                    else {
+                        CanManager::enqueue_message(value, my_type::START_STREAM_DUTY_CYCLE, nullptr, 0);
+                    }
+                }
+            }
+            else {
+                Serial.println("err");
+            }
+            break;
+        case 'S': //Stop stream
+            int valueS;
+            if (sscanf(command.c_str(), "S %c %d", &i, &valueS) == 2){
+                unsigned char i_char = static_cast<unsigned char>(i);
+                if (i_char == 'l') {
+                    if (valueS == HUB) {
+                        my()->stream_lux = false;
+                    }
+                    else {
+                        CanManager::enqueue_message(valueS, my_type::STOP_STREAM_LUX, nullptr, 0);
+                    }
+                }
+                else if (i_char == 'd') {
+                    if (valueS == HUB) {
+                        my()->stream_duty_cycle = false;
+                    }
+                    else {
+                        CanManager::enqueue_message(valueS, my_type::STOP_STREAM_DUTY_CYCLE, nullptr, 0);
+                    }
+                }
             }
             else {
                 Serial.println("err");
@@ -105,13 +171,7 @@ void Parser::parseCommand(const String& command) {
 }
 
 void Parser::getters(char &item, int val) {
-    int i = 0;
-    bool value;
-    float result;
-    int flag = 0;
     switch (item) {
-        case 'I':
-            Serial.print("ID: "); Serial.println(PICO_ID);
         case 'd': //DUTY CYCLE
             if (val == HUB) {
                 Serial.printf("d %d %lf\n", PICO_ID, my()->u);
@@ -135,8 +195,7 @@ void Parser::getters(char &item, int val) {
         case 'l': //MEASURED LIGHT
             float light;
             if (val == HUB) {
-                light = analogRead(my()->LED_PIN);
-                Serial.printf("l %d %lf\n", PICO_ID, light);
+                Serial.printf("l %d %lf\n", PICO_ID, my()->vss_lux);
             }
             else {
                 uint8_t new_data[6] = {0};
@@ -154,20 +213,87 @@ void Parser::getters(char &item, int val) {
                 CanManager::enqueue_message(PICO_ID, my_type::GET_OCCUPANCY, new_data, sizeof(new_data));
             }
             break;
-        case 'k':
-            value = !my()->my_pid.getFeedforward();
-            flag = 1;
+        case 'a': //ANTI-WINDUP
+            if (val == HUB) {
+                Serial.printf("a %d %d\n", PICO_ID, my()->my_pid.getAntiWindup());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_ANTI_WINDDUP, new_data, sizeof(new_data));
+            }
             break;
-        case 'a':
-            value = my()->my_pid.getAntiWindup();
-            flag = 1;
+        case 'k': //FEEDBACK
+            if (val == HUB) {
+                Serial.printf("k %d %d\n", PICO_ID, my()->my_pid.getFeedback());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_FEEDBACK, new_data, sizeof(new_data));
+            }
             break;
-        case 'e':
-            result = my()->my_metrics.getEnergyConsumption();
-        case 'f':
-            result = my()->my_metrics.getAverageFlicker();
-        case 'v':
-            result = my()->my_metrics.getVisibilityError();
+        case 'x': //EXTERNAL LIGHT
+            if (val == HUB) {
+                Serial.printf("x %d %lf\n", PICO_ID, my()->o_lux);
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_EXTERNAL_ILUMINANCE, new_data, sizeof(new_data));
+            }
+            break;
+        case 't': //ELAPSED TIME
+            if (val == HUB) {
+                float delta = (float)(my()->current_time - my()->initial_time) * std::pow(10, -3);
+                Serial.printf("t %d %lf\n", PICO_ID,  delta);
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_ELAPSED_TIME, new_data, sizeof(new_data));
+            }
+            break;
+        case 'p': //INSTANTANEOUS POWER
+            if (val == HUB) {
+                Serial.printf("p %d %lf\n", PICO_ID, my()->my_metrics.getInstantPower());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_INSTANTANEOUS_POWER, new_data, sizeof(new_data));
+            }  
+            break;  
+        case 'e': //AVERAGE ENERGY
+            if (val == HUB) {
+                Serial.printf("e %d %lf\n", PICO_ID, my()->my_metrics.getEnergyConsumption());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_AVERAGE_ENERGY, new_data, sizeof(new_data));
+            }
+            break;
+        case 'v': //AVERAGE VISIBILITY
+            if (val == HUB) {
+                Serial.printf("v %d %lf\n", PICO_ID, my()->my_metrics.getVisibilityError());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_AVERAGE_VISIBILITY, new_data, sizeof(new_data));
+            }
+            break;
+        case 'f': //AVERAGE FLICKER
+            if (val == HUB) {
+                Serial.printf("f %d %lf\n", PICO_ID, my()->my_metrics.getAverageFlicker());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_AVERAGE_FLICKER, new_data, sizeof(new_data));
+            }
+            break;
         default:
             Serial.println("err");
             break;

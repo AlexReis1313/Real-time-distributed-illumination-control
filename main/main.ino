@@ -21,9 +21,44 @@ void controller_rotine() {
         my()->my_pid.housekeep(my()->ref_volts, my()->vss);
 
         //print_vars();
-        //float percnt_dutycycle = ((my()->vss * 4095) / 3.3) / 4095;
-        //my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
+        float percnt_dutycycle = (my()->u) / 4095;
+        my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
         my()->last_control_time = my()->current_time;
+    }
+}
+
+void stream_rotine() {
+    if (my()->stream_lux) {
+        if (PICO_ID == HUB) {
+            Serial.print("s l ");
+            Serial.print(PICO_ID); Serial.print(" ");
+            Serial.print(my()->vss_lux); Serial.print(" ");
+            Serial.println(millis() - my()->initial_time);
+        }
+        else {
+            if (my()->current_time - my()->last_time_stream >= 50) {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(my()->vss_lux), sizeof(my()->vss_lux));
+                CanManager::enqueue_message(PICO_ID, my_type::SERIAL_STREAM_LUX, new_data, sizeof(new_data));
+                my()->last_time_stream = my()->current_time;
+            }
+        }
+    }
+    if (my()->stream_duty_cycle) {
+        if (PICO_ID == HUB) {
+            Serial.print("s d ");
+            Serial.print(PICO_ID); Serial.print(" ");
+            Serial.print(my()->u); Serial.print(" ");
+            Serial.println(millis() - my()->initial_time);
+        }
+        else {
+            if (my()->current_time - my()->last_time_stream >= 50) {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(my()->u), sizeof(my()->u));
+                CanManager::enqueue_message(PICO_ID, my_type::SERIAL_STREAM_DUTY_CYCLE, new_data, sizeof(new_data));
+                my()->last_time_stream = my()->current_time;
+            }
+        }
     }
 }
 
@@ -56,6 +91,7 @@ void loop() {
 
     CanManager::serial_and_actions_rotine();
     controller_rotine();
+    stream_rotine();
 }
 
 void loop1() {

@@ -43,19 +43,57 @@ class CanManager {
 
         //Can Actions
         static void     createMap(void);
+
+        //Ack
         static void     ackAction(info_msg &msg);
+
+        //SETTERS
         static void     setReferenceAction(info_msg &msg);
         static void     setDutyCycleAction(info_msg &msg);
         static void     setOccupancyAction(info_msg &msg);
+        static void     setAntiWindupAction(info_msg &msg);
+        static void     setFeedbackAction(info_msg &msg);
+
+        //STREAM
+        static void     startStreamLuxAction(info_msg &msg);
+        static void     startStreamDutyCycleAction(info_msg &msg);
+        static void     stopStreamDutyCycleAction(info_msg &msg);
+        static void     stopStreamLuxAction(info_msg &msg);
+
+        //GETTERS
         static void     getDutyCycleAction(info_msg &msg);
         static void     getReferenceAction(info_msg &msg);
         static void     getIluminanceAction(info_msg &msg);
         static void     getOccupancyAction(info_msg &msg);
+        static void     getAntiWindupAction(info_msg &msg);
+        static void     getFeedbackAction(info_msg &msg);
+        static void     getExternalIluminanceAction(info_msg &msg);
+        static void     getElapsedTimeAction(info_msg &msg);
+        static void     getInstantaneousPowerAction(info_msg &msg);
+        static void     getAverageEnergyAction(info_msg &msg);
+        static void     getAverageVisibilityAction(info_msg &msg);
+        static void     getAverageFlickerAction(info_msg &msg);
+
+        //SERIAL
         static void     serialGetReferenceAction(info_msg &msg);
         static void     serialGetDutyCycleAction(info_msg &msg);
         static void     serialGetIluminanceAction(info_msg &msg);
         static void     serialGetOccupancyAction(info_msg &msg);
+        static void     serialGetAntiWindupAction(info_msg &msg);
+        static void     serialGetFeedbackAction(info_msg &msg);
+        static void     serialGetExternalIluminanceAction(info_msg &msg);
+        static void     serialGetElapsedTimeAction(info_msg &msg);
+        static void     serialGetInstantaneousPowerAction(info_msg &msg);
+        static void     serialGetAverageEnergyAction(info_msg &msg);
+        static void     serialGetAverageVisibilityAction(info_msg &msg);
+        static void     serialGetAverageFlickerAction(info_msg &msg);
+        static void     serialStreamLuxAction(info_msg &msg);
+        static void     serialStreamDutyCycleAction(info_msg &msg);
+
+        //HUB
         static void     foundHubAction(info_msg &msg);
+
+        //OTHERS
         static void     WakeUpAction(info_msg &msg);
         static void     ackInternalAction(info_msg &msg);
         static void     measureNOlightAction(info_msg &msg);
