@@ -43,8 +43,6 @@ class CanManager {
 
         //Can Actions
         static void     createMap(void);
-        static void     offAction(info_msg &msg);
-        static void     onAction(info_msg &msg);
         static void     ackAction(info_msg &msg);
         static void     setReferenceAction(info_msg &msg);
         static void     setDutyCycleAction(info_msg &msg);

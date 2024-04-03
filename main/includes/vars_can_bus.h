@@ -27,8 +27,6 @@ struct canBus_vars {
 
 enum my_type : uint8_t //needs to 8 bits
 {
-  OFF,
-  ON,
   ACK,
   ACKINTERNA,
   MeasureNoLights,

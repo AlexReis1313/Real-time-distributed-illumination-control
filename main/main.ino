@@ -38,10 +38,10 @@ void setup() {
     //Setup controller, metrics and parser
     vars_setup();
     //CanManager::wake_up_grid();
-    CanManager::wake_up_grid();
+    // CanManager::wake_up_grid();
     CanManager::printID();
     CanManager::createMap();
-    distrControl::setUpGains();
+    // distrControl::setUpGains();
 
 }
 

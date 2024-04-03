@@ -20,9 +20,6 @@ void CanManager::begin(char bitrate) {
     // Initialize CAN controller
     canController.reset();
     canController.setNormalMode();
-    // Initialize interrupt pin for CAN-BUS messages
-    //pinMode(canbus_vars.interruptPin, INPUT_PULLUP);
-    //attachInterrupt(digitalPinToInterrupt(canbus_vars.interruptPin), ISR_wrapper, FALLING);
 }
 
 void CanManager::printID() {
@@ -180,7 +177,7 @@ void CanManager::canBUS_to_actions_rotine(void) {
         my_type message_type = pm.type;
         unsigned char* data = pm.data;
         
-        std::map<int, eventFunction>::iterator it = _actionMap.find(message_type);
+        std::map<my_type, eventFunction>::iterator it = _actionMap.find(message_type);
         if (_actionMap.find(message_type) != _actionMap.end()){
             it->second(pm);
             Serial.print("Type: "); Serial.print(it->first);
