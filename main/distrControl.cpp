@@ -15,7 +15,7 @@ void distrControl::setUpGains(){
     if(my()->THIS_NODE_NR == 0){
     
         //measure lux o - external - no light
-        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MeasureNoLights, nullptr, 0);
+        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MEASURE_NO_LIGHTS, nullptr, 0);
         float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         int index=my()->nr_ckechIn_Nodes;
         distrControl::gainsVector[index] = Volt2LUX(vss); //Get LDR value in lux
@@ -24,7 +24,7 @@ void distrControl::setUpGains(){
         analogWrite(my()->LED_PIN, 4000); //Apply control signal to LED
         unsigned char data[sizeof(int)];
         memcpy(data, &my()->THIS_NODE_NR, sizeof(int));
-        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MeasureLights, data ,sizeof(data) );
+        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MEASURE_LIGHTS, data ,sizeof(data) );
         vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         float x_lux = Volt2LUX(vss); //Get LDR value in lux
         //            0 = my()->THIS_NODE_NR;                     index = my()->nr_ckechIn_Nodes
@@ -32,7 +32,7 @@ void distrControl::setUpGains(){
 
         memcpy(data, &my()->THIS_NODE_NR + 1, sizeof(int));
         //this informs pico 1 that he should light up. From now on, pico 1 will be in charge
-        CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NotifyFutureLight, data ,sizeof(data) );
+        CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NOTIFY_FUTURE_LIGHT, data ,sizeof(data) );
         
     } 
     //loop non blocking until endGains_bool

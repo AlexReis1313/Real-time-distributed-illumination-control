@@ -30,10 +30,11 @@ void CanManager::createMap(void) {
 
     //WAKE UP
     _actionMap[my_type::WAKE_UP] = WakeUpAction;
-    _actionMap[my_type::MeasureNoLights] = measureNOlightAction;
-    _actionMap[my_type::MeasureLights] = measurelightAction;
-    _actionMap[my_type::NotifyFutureLight] = NotifyThisLightAction;
+    _actionMap[my_type::MEASURE_NO_LIGHTS] = measureNOlightAction;
+    _actionMap[my_type::MEASURE_LIGHTS] = measurelightAction;
+    _actionMap[my_type::NOTIFY_FUTURE_LIGHT] = NotifyThisLightAction;
     _actionMap[my_type::ENDGAINS] = EndGainsAction;
+
 }
 
 void CanManager::ackInternalAction(info_msg &msg) {
@@ -242,7 +243,7 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
         CanManager::acknoledge(type); //inform previous node that this node has taken over
 
         analogWrite(my()->LED_PIN, 4000); //Apply control signal to LED
-        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MeasureLights, msg.data ,sizeof(msg.data ) );
+        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MEASURE_LIGHTS, msg.data ,sizeof(msg.data ) );
 
         float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         float x_lux = Volt2LUX(vss); //Get LDR value in lux
@@ -259,7 +260,7 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
             unsigned char data[sizeof(int)];
             memcpy(data, &my()->THIS_NODE_NR + 1, sizeof(int));
             //this informs pico 1 that he should light up. From now on, pico 1 will be in charge
-            CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NotifyFutureLight, data ,sizeof(data) );
+            CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NOTIFY_FUTURE_LIGHT, data ,sizeof(data) );
     
         }
 
