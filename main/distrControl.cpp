@@ -75,16 +75,26 @@ void distrControl::setUpGains(){
 
 }
 
+void distrControl::ComputeConsensus() {
+  computeGlobalMinInside(); //calculated_d_vector
 
-/*
-void initialize_node(){
+  if(!FeasibilityCheck(calculated_d_vector)) {
+    calculated_d_vector.clear();
+    computeBoundarySolutions(); //calculated_d_vector
+  }
 
 
+
+
+  for(byte i=0; i < number_of_addresses-1; i++) {
+    dimmings[retrieve_index(nodes_addresses, number_of_addresses, my_address) - 1][i] = proposedDimmingVector[i];
+  }  
 }
 
 
+
  
-void distrControl::computeGlobalMinimum() {
+void distrControl::computeGlobalMinInside() {
 //formulas taken from lecture notes section 5.1 
   for(int i = 0; i < my()->nr_ckechIn_Nodes; i++) {
     if(i == my()->THIS_NODE_NR ) {
@@ -160,7 +170,8 @@ void distrControl::computeBoundarySolutions() {
             vector_ILBintersectDLB[i] = 0;
         }
         else{
-            vector_ILBintersectDLB[i] = 
+            aux= ( my()-> o_lux - this->current_lower_bound - (1/this->optimization_rho )*( distrControl::gainsVector[my()->THIS_NODE_NR]*Y[my()->THIS_NODE_NR] - Kgains_Y ) );
+            vector_ILBintersectDLB[i] = (1/this->optimization_rho )*Y[i] -  ( auxiliar_vector[i] * aux );
         }
     }
     //solution for S5: from page 22 of lecture notes - ILB & DUB    
@@ -172,59 +183,41 @@ void distrControl::computeBoundarySolutions() {
             aux =  my()->o_lux - this->current_lower_bound + 100*distrControl::gainsVector[my()->THIS_NODE_NR] - (1/this->optimization_rho )*(distrControl::gainsVector[my()->THIS_NODE_NR]*Y[my()->THIS_NODE_NR] - Kgains_Y) ;
             vector_ILBintersectDUB[i] = (1/this->optimization_rho ) * Y[i]  - ( auxiliar_vector[i] * aux );
         }
-
-
-
-  
-
-    //ILB:
-    if(i == my()->THIS_NODE_NR) {
-      vector_DLB[i] = 0;
-      vector_DUB[i] = 100;
-      vector_ILBintersectDLB[i] = 0;
-      vector_ILBintersectDUB[i] = 100;
-    } else {
-      vector_DUB[i] = (1/this->optimization_rho ) * zed[i];
-      vector_ILBintersectDLB[i] = (1/this->optimization_rho )*zed[i] - 
-        ( norm_in_fraction * ( my()->o_lux - this->current_lower_bound - (1/this->optimization_rho )*( distrControl::gainsVector[my()->THIS_NODE_NR]*Y[my()->THIS_NODE_NR] - Kgains_Y ) ) );
-
-      vector_ILBintersectDUB[i] = (1/this->optimization_rho ) * zed[i] - ( norm_in_fraction * ( my()->o_lux - this->current_lower_bound + 100*distrControl::gainsVector[my()->THIS_NODE_NR] + (1/this->optimization_rho )*(distrControl::gainsVector[my()->THIS_NODE_NR]*Y[my()->THIS_NODE_NR] - Kgains_Y) ) );
-    }
   }
 
-    
-  float bestCost = 10000; 
-  std::vector<float> bestVector;  
+  //Now we will check which is the solution that gives the best cost and is feasible
+  float bestCost = 10000;
 
-  if( FeasibilityCheck(vector_ILB) and (computeCost(vector_ILB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_ILB) && (computeCost(vector_ILB) < bestCost) ) {
     bestCost = computeCost(vector_ILB);
-    bestVector = vector_ILB;
+    calculated_d_vector = vector_ILB;
   }
-  if( FeasibilityCheck(vector_DLB) and (computeCost(vector_DLB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_DLB) && (computeCost(vector_DLB) < bestCost) ) {
     bestCost = computeCost(vector_DLB);
-    bestVector = vector_DLB;
+    calculated_d_vector = vector_DLB;
   }
-  if( FeasibilityCheck(vector_DUB) and (computeCost(vector_DUB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_DUB) && (computeCost(vector_DUB) < bestCost) ) {
     bestCost = computeCost(vector_DUB);
-    bestVector = vector_DUB;
+    calculated_d_vector = vector_DUB;
   }
-  if( FeasibilityCheck(vector_ILBintersectDLB) and (computeCost(vector_ILBintersectDLB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_ILBintersectDLB) && (computeCost(vector_ILBintersectDLB) < bestCost) ) {
     bestCost = computeCost(vector_ILBintersectDLB);
-    bestVector = vector_ILBintersectDLB;
+    calculated_d_vector = vector_ILBintersectDLB;
   }
-  if( FeasibilityCheck(vector_ILBintersectDUB) and (computeCost(vector_ILBintersectDUB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_ILBintersectDUB) && (computeCost(vector_ILBintersectDUB) < bestCost) ) {
     bestCost = computeCost(vector_ILBintersectDUB);
-    bestVector = vector_ILBintersectDUB;
+    calculated_d_vector = vector_ILBintersectDUB;
   }
   if(bestCost == 10000) {// if no solution was meet, then assume the last solution
-    bestVector = dimmings[my()->THIS_NODE_NR];
+    calculated_d_vector = all_d[my()->THIS_NODE_NR];
   }
+  
   
 }
 
 
 
-float Consensus::computeCost(const std::vector<float>& d_to_compute) {
+float distrControl::computeCost(const std::vector<float>& d_to_compute) {
   //formula taken from section 3.1 "The ADDM algorithm" of DRTCS lecture notes
   
     float computedCost = 0;
@@ -246,7 +239,7 @@ float Consensus::computeCost(const std::vector<float>& d_to_compute) {
 
 
 
-void Consensus::calculateAverage() {
+void distrControl::calculateAverage() {
   for(int i=0; i< my()->nr_ckechIn_Nodes; i++) {
     d_average[i] = 0;
     for(int j=0; j< my()->nr_ckechIn_Nodes; j++){
@@ -256,7 +249,7 @@ void Consensus::calculateAverage() {
   }
 }
 
-bool Consensus::FeasibilityCheck( const std::vector<float>& d_to_check){    
+bool distrControl::FeasibilityCheck( const std::vector<float>& d_to_check){    
     float total_lux = 0;
 
     for(int i = 0; i < my()->nr_ckechIn_Nodes; i++) {
@@ -276,7 +269,9 @@ bool Consensus::FeasibilityCheck( const std::vector<float>& d_to_check){
 }
 
 
- */
+ void distrControl::updateD_values(const std::vector<float>& d_to_update, int node){
+    all_d[node]=d_to_update;
+ }
 
 
 void distrControl::set_occupancy(bool new_occupancy) {

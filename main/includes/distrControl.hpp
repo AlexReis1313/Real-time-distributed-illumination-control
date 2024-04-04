@@ -20,11 +20,14 @@ class distrControl {
         static std::vector<float> gainsVector;
 
         static void  setUpGains();
-/* 
-        static bool Consensus::computeCost( const std::vector<float>& d_to_compute)
-        static bool Consensus::FeasibilityCheck( const std::vector<float>& d_to_check)
-        static void Consensus::calculateAverage();
- */
+
+        static void updateD_values(const std::vector<float>& d_to_update, int node);
+        static float computeCost( const std::vector<float>& d_to_compute);
+        static bool FeasibilityCheck( const std::vector<float>& d_to_check);
+        static void calculateAverage();
+        static void computeGlobalMinInside();
+        static void computeBoundarySolutions();
+        static void ComputeConsensus();
 
         static void set_occupancy(bool new_occupancy);  
         static bool get_occupancy();
