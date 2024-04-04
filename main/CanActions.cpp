@@ -97,6 +97,7 @@ void CanManager::measureNOlightAction(info_msg &msg) {
             if (my()->o_lux ==-1){//if variable was not yet defined
                 float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
                 my()->o_lux = Volt2LUX(vss); //Get LDR value in lux
+                //Serial.print("Measuring o lux :");Serial.println(my()->o_lux);
                 }
             char type = 'i';
             CanManager::acknoledge(type, msg.sender);
@@ -114,12 +115,13 @@ void CanManager::measurelightAction(info_msg &msg) {
         if (millis()-my()->initial_time_local >500){ //wait half a second for the LDR to stabilize
                 int data_as_int;
                 memcpy(&data_as_int, msg.data, sizeof(int));
-                if (distrControl::gainsVector[data_as_int] ==-1){
+                if (distrControl::gainsVector[data_as_int] ==0){
                 
                     float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
                     float x_lux = Volt2LUX(vss); //Get LDR value in lux
                     float gain = (x_lux - my()->o_lux) / 4000;
                     distrControl::gainsVector[data_as_int] = gain;
+                    //Serial.print("Measuring gain :");Serial.println(gain);
                 }
                 char type = 'i';
                 CanManager::acknoledge(type, msg.sender); //intermal ack
@@ -141,7 +143,7 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
         CanManager::acknoledge(type, msg.sender); //inform previous node that this node has taken over
 
         analogWrite(my()->LED_PIN, 4000); //Apply control signal to LED
-        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MeasureLights, msg.data ,sizeof(msg.data ) );
+        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MEASURE_LIGHTS, msg.data ,sizeof(msg.data ) );
 
         float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         float x_lux = Volt2LUX(vss); //Get LDR value in lux
@@ -163,7 +165,7 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
             memcpy(data, &next_node_nr, sizeof(int));
             Serial.print("Passing master token to next node. To node: "); Serial.println(next_node_nr);            
             //this informs pico 1 that he should light up. From now on, pico 1 will be in charge
-            CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NotifyFutureLight, data ,sizeof(data) );
+            CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NOTIFY_FUTURE_LIGHT, data ,sizeof(data) );
     
         }
 

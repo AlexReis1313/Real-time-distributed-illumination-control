@@ -82,11 +82,11 @@ void setup() {
     distrControl::setUpGains();
 
     Serial.print("Vector of gains is: ");
-    for (size_t i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
             Serial.print(distrControl::gainsVector[i],4); // Print current element
             Serial.print(", "); // Print comma unless it's the last element
             }
-    Serial.println(); 
+    Serial.println(my()->o_lux); 
     Serial.println("Going to loop");
 
 

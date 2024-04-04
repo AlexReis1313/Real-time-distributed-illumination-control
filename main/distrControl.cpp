@@ -3,16 +3,17 @@
 #include "includes/vars.h"
 #include "includes/my_aux.h"
 #include <cmath>
+#include <vector>
 
 
 distrControl *distrControl::instance = nullptr; // Initialize static instance pointer
 //the gains corresponding to node 0 are in entry 0, node 1 - entry 1, node 2 - entry 2
-std::vector<float> distrControl::gainsVector(my()->nr_ckechIn_Nodes, -1.0f);
+std::vector<float> distrControl::gainsVector;
 
-//std::vector<std::vector<float>> distrControl::all_d(my()->nr_ckechIn_Nodes, std::vector<int>(my()->nr_ckechIn_Nodes, 0)); // Initialized to 0
-std::vector<float> distrControl::d_average(my()->nr_ckechIn_Nodes, 0);
-std::vector<float> distrControl::current_lagrange_multipliers(my()->nr_ckechIn_Nodes, 0);
-std::vector<float> distrControl::calculated_d_vector(my()->nr_ckechIn_Nodes, 0);
+std::vector<std::vector<float>> distrControl::all_d; // Initialized to 0
+std::vector<float> distrControl::d_average;
+std::vector<float> distrControl::current_lagrange_multipliers;
+std::vector<float> distrControl::calculated_d_vector;
 
 
 
@@ -20,6 +21,16 @@ bool distrControl::endGAINS_bool = false;
 float distrControl::tolerance=0.001;
 
 void distrControl::setUpGains(){
+    gainsVector = std::vector<float>(my()->nr_ckechIn_Nodes);
+    d_average = std::vector<float>(my()->nr_ckechIn_Nodes);
+    current_lagrange_multipliers = std::vector<float>(my()->nr_ckechIn_Nodes);
+    calculated_d_vector = std::vector<float>(my()->nr_ckechIn_Nodes);
+    all_d = std::vector<std::vector<float>>(my()->nr_ckechIn_Nodes, std::vector<float>(my()->nr_ckechIn_Nodes));
+    // Initialize inner vectors separately
+    for (int i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+        all_d[i] = std::vector<float>(my()->nr_ckechIn_Nodes);
+    }
+
     //gainsVector.resize(my()->nr_ckechIn_Nodes + 1);
     analogWrite(my()->LED_PIN, 0); //turn off LED
     delay(500);
@@ -34,19 +45,20 @@ void distrControl::setUpGains(){
         unsigned char data[sizeof(int)];
         memcpy(data, &my()->THIS_NODE_NR, sizeof(int));
         Serial.println("Starting to MeasureLights ");
-        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MeasureLights, data ,sizeof(data) );
+        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MEASURE_LIGHTS, data ,sizeof(data) );
         vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         float x_lux = Volt2LUX(vss); //Get LDR value in lux
         //            0 = my()->THIS_NODE_NR;    
         float gain=(x_lux - my()->o_lux) / 4000;
-        distrControl::gainsVector[0] = gain;
+        gainsVector[0] =  gain;
+        
 
         analogWrite(my()->LED_PIN, 0);
         int next_node_nr=my()->THIS_NODE_NR + 1;
         memcpy(data, &next_node_nr, sizeof(int));
         //this informs pico 1 that he should light up. From now on, pico 1 will be in charge
         Serial.print("Passing master token to next node. To node: "); Serial.println(next_node_nr);
-        CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NotifyFutureLight, data ,sizeof(data) );
+        CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NOTIFY_FUTURE_LIGHT, data ,sizeof(data) );
         
     } 
     else{

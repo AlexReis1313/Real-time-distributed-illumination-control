@@ -9,7 +9,7 @@ t_data *my(void){ //multithreading advantages; null inicialization; encapsulatio
 void vars_setup(void){    
     //Hardware variables
     my()->LED_PIN = 15;
-    my()->LDR_port = A1;
+    my()->LDR_port = A0;
     my()->DAC_RANGE = 4096;
 
     //LUX variables

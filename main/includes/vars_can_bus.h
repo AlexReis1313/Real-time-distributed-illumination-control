@@ -31,11 +31,11 @@ enum my_type : uint8_t //needs to 8 bits
   ACKINTERNA,
   
   SET_REFERENCE,
-  MeasureNoLights, //4
-  MeasureLights, //5
-  NotifyFutureLight,//6
+  MEASURE_NO_LIGHTS, //4
+  MEASURE_LIGHTS, //5
+  NOTIFY_FUTURE_LIGHT,//6
   ENDGAINS,
-  //ACKENDGAINS,
+  WAKE_UP,
   SET_DUTY_CYCLE,
   SET_OCCUPANCY,
   SET_ANTI_WINDDUP,
@@ -78,10 +78,7 @@ enum my_type : uint8_t //needs to 8 bits
 
   FOUND_HUB,
 
-  WAKE_UP,
-  MEASURE_NO_LIGHTS,
-  MEASURE_LIGHTS,
-  NOTIFY_FUTURE_LIGHT,
+  
 };
 
 struct info_msg {

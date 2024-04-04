@@ -13,7 +13,7 @@ void CanManager::flashIDsetup() {
     rp2040.idleOtherCore();
     flash_get_unique_id(canbus_vars.this_pico_flash_id);
     rp2040.resumeOtherCore();
-    canbus_vars.node_address = canbus_vars.this_pico_flash_id[7];
+    canbus_vars.node_address = canbus_vars.this_pico_flash_id[6];
 }
 
 void CanManager::begin(char bitrate) { // Initialize CAN controller
@@ -208,7 +208,7 @@ void CanManager::acknoledge(char type,unsigned char data_to_send ){
 }
 void CanManager::loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size){
     bool executeAction=false;
-    delay(100);
+    delay(500);
     CanManager::canBUS_to_actions_rotine(executeAction);//clear buffer of canBUS
     executeAction = true;
     my()->last_control_time = 0;
@@ -231,6 +231,9 @@ void CanManager::loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type 
             break;
         }
     }
+    
+
+
 }
 
 void CanManager::wake_up_grid() {

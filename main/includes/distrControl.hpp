@@ -8,15 +8,17 @@ class distrControl {
         distrControl() {}
         static float lower_bound_occupied, lower_bound_unoccupied, current_lower_bound, cost, tolerance, optimization_rho;
         static std::vector<float> d_average;
-        static std::vector<float> all_d;
+        //static std::vector<float> all_d;
         static std::vector<float> current_lagrange_multipliers;
         static std::vector<float> calculated_d_vector;
+        static std::vector<std::vector<float>> all_d;
 
     public:
         static distrControl* instance;
         
         static bool endGAINS_bool;
         static std::vector<float> gainsVector;
+
         static void  setUpGains();
 /* 
         static bool Consensus::computeCost( const std::vector<float>& d_to_compute)
