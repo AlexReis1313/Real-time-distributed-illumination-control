@@ -1,26 +1,23 @@
-#include "includes/metrics.hpp"
+#include "includes/vars.h"
 
 Metrics::Metrics () : visibility_error(0), \
                       average_flicker(0), flicker_sum(0), total_energy_consumption(0), \
                       visibility_sum(0), max_power(0), n_samples(0), duty_cicle_prev(0), \
-                      luminance_prev(0), nomimal_power(0), instant_power(0), \
-                      current_time(0), previous_time(0), n_sample_flicker(0) {}
+                      luminance_prev(0), instant_power(0), current_time(0), previous_time(0), \
+                      n_sample_flicker(0) {}
 
 Metrics::~Metrics () {};
 
 void Metrics::setEnergyConsumption(float current_duty_cycle){
     current_time = millis();
     float delta_time = SAMPLE_TIME_MILIS * std::pow(10, -3);
-    nomimal_power = 0.017;
-    instant_power = nomimal_power * current_duty_cycle;
+    instant_power = my()->nominal_power * current_duty_cycle;
     total_energy_consumption += instant_power * delta_time;
     previous_time = current_time;
 
-    Serial.print("Energy consumption: "); Serial.println(total_energy_consumption, 10);
+    //Serial.print("Energy consumption: "); Serial.println(total_energy_consumption, 10);
 }
 
-
-//enviar referencias em LUX?
 void Metrics::setVisibilityError(float x_ref, float x_real){
 
     float visibility_sum;
@@ -34,7 +31,7 @@ void Metrics::setVisibilityError(float x_ref, float x_real){
     else {
         visibility_error = 0;
     }
-    Serial.print("Visibility error: "); Serial.println(visibility_error, 10);
+    //Serial.print("Visibility error: "); Serial.println(visibility_error, 10);
 }
 
 void Metrics::setAverageFlicker(float current_duty_cycle) {
@@ -50,7 +47,7 @@ void Metrics::setAverageFlicker(float current_duty_cycle) {
     } else {
         average_flicker = 0;
     }
-    Serial.print("Average Flicker: "); Serial.println(average_flicker, 10);
+    //Serial.print("Average Flicker: "); Serial.println(average_flicker, 10);
 
 }
 
@@ -70,4 +67,8 @@ float Metrics::getVisibilityError(){
 
 float Metrics::getAverageFlicker(){
     return this->average_flicker;
+}
+
+float Metrics::getInstantPower(){
+    return this->instant_power;
 }

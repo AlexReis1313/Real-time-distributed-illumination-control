@@ -16,6 +16,7 @@ class Metrics {
         float   getMaxPower();
         void    setAverageFlicker(float current_duty_cycle);
         float   getAverageFlicker();
+        float   getInstantPower();
         void    updateMetrics(float x_ref, float x_real, float new_duty_cycle);
 
     private:
@@ -33,7 +34,6 @@ class Metrics {
         float   duty_cicle_prev;
         float   luminance_prev;
 
-        float   nomimal_power;
         float   instant_power;
 
         float   current_time;

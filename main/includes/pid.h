@@ -7,7 +7,7 @@ class pid {
     private:
       float I, D, K, Ti, Tt, Td, b, h, y_old, N, b_old, Kold;
       float P, u, error, ao, duty_cycle, dutycycle_time;
-      bool  feedforward, antiwindup;
+      bool  feedback, antiwindup;
       
     public:
       explicit pid( float _h, float _K = 0, float b_ = 1,
@@ -19,8 +19,8 @@ class pid {
       float saturate(float v, float ulow, float uhigh);
       void print_output(float u);
       void setBcontroller(float b_controller);
-      void setFeedforward(bool value);
-      bool getFeedforward();
+      bool getFeedback();
+      void setFeedback(bool value);
       bool getAntiWindup();
       void setAntiWindup(bool value);
       void setDutyCycle(int duty_cycle, float time);
@@ -39,7 +39,7 @@ inline void pid::housekeep( float r, float y ) {
         ao = 0;
     }
     float integral = 0;
-    if (!feedforward) {
+    if (feedback) {
         integral = K*h/Ti*error;
     } 
     I += integral + ao*(u - (P+I));

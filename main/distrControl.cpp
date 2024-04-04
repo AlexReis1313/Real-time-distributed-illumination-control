@@ -26,7 +26,7 @@ void distrControl::setUpGains(){
     if(my()->THIS_NODE_NR == 0){
         Serial.println("I am node 0");
         //measure lux o - external - no light
-        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MeasureNoLights, nullptr, 0);
+        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MEASURE_NO_LIGHTS, nullptr, 0);
         float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         my()->o_lux = Volt2LUX(vss); //Get LDR value in lux
     

@@ -54,6 +54,14 @@ struct s_data
     unsigned long    current_time;
     unsigned long    initial_time;
     unsigned long    initial_time_local;
+    unsigned long    elapsed_time;
+    unsigned long    last_time_stream;
+
+    float            nominal_power;
+    
+    bool             stream_lux;
+    bool             stream_duty_cycle;
+    int              stream_id;
 
     std::vector<int> list_Nr_detected_IDS; // List to store the number of detected IDs
     std::vector<unsigned char> list_IDS; // List to store the IDs of other picos

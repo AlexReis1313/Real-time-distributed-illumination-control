@@ -42,13 +42,22 @@ void vars_setup(void){
     //Metrics variables
     my()->my_metrics = Metrics();
     my()->inicial = false;
-    my()->occupancy = true;
+    my()->occupancy = false;
+    my()->nominal_power = 0.021;
+
+    //Stream variables
+    my()->stream_lux = false;
+    my()->stream_duty_cycle = false;
 
     //Time variables
     my()->control_interval = 10;
+    my()->initial_time = millis();
 
     // Initialize list_Nr_detected_IDS and list_IDS
     my()->list_Nr_detected_IDS.clear(); // Ensure the list is empty initially
     my()->list_IDS.clear(); // Ensure the list is empty initially
     my()->list_nodes.clear();
+
+    float percnt_dutycycle = (my()->u) / 4095;
+    my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
 }
