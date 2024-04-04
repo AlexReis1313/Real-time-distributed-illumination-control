@@ -35,6 +35,7 @@ void vars_setup(void){
     my()->vss = analogRead(my()->LDR_port)*3.3/4095;
     my()->vss_lux = Volt2LUX(my()->vss);
     my()->ref_volts = LUX2Volt(my()->x_ref);
+    my()->o_lux = -1;
     //Parser variables
     my()->my_parser = Parser();
 

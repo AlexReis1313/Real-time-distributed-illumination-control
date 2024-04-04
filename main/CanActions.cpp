@@ -9,11 +9,10 @@ void CanManager::createMap(void) {
     _actionMap[my_type::OFF] = offAction;
     _actionMap[my_type::ON] = onAction;
     _actionMap[my_type::ACK] = ackAction;
-    _actionMap[my_type::SET_DUTY_CYCLE] = setDutyCycleAction;
-    _actionMap[my_type::GET_DUTY_CYCLE] = getDutyCycleAction;
+    
     _actionMap[my_type::ACKINTERNA] = ackInternalAction;
-    //_actionMap[my_type::SET_DUTY_CYCLE] = setDutyCycleAction;
-    //_actionMap[my_type::GET_DUTY_CYCLE] = getDutyCycleAction;
+    
+    
     _actionMap[my_type::SET_REFERENCE] = setReferenceAction;
     _actionMap[my_type::GET_REFERENCE] = getReferenceAction;
     _actionMap[my_type::SERIAL_GET_REFERENCE] = serialGetReferenceAction;
@@ -23,13 +22,23 @@ void CanManager::createMap(void) {
    _actionMap[my_type::MeasureLights] = measurelightAction;
    _actionMap[my_type::NotifyFutureLight] = NotifyThisLightAction;
    _actionMap[my_type::ENDGAINS] = EndGainsAction;
-
 }
 
 void CanManager::ackInternalAction(info_msg &msg) {
-    int node = my()->id_to_node[msg.sender];
-    my()->list_Ack[node] = true;
+    int value;
+    memcpy(&value, msg.data, sizeof(int));
+    if (value == PICO_ID){
+ 
+        if (find(my()->list_Ack.begin(), my()->list_Ack.end(), msg.sender) == my()->list_Ack.end()){// is there this id in the list?
+            my()->list_Ack.push_back(msg.sender);
+         
+
+        }
+    }
+
+
 }
+
 
 void CanManager::ackAction(info_msg &msg) {
     if (PICO_ID == HUB){
@@ -41,23 +50,54 @@ void CanManager::ackAction(info_msg &msg) {
 
 
 void CanManager::measureNOlightAction(info_msg &msg) {
-   my()->initial_time = millis();
-   if (millis()-my()->initial_time >500){ //wait half a second for the LDR to stabilize
-        float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
-        int index = my()->nr_ckechIn_Nodes;
-        distrControl::gainsVector[index] = Volt2LUX(vss); //Get LDR value in lux
-        char type = 'i';
-        CanManager::acknoledge(type);
+   my()->initial_time_local = millis();
+   while(true){
+        if (millis()-my()->initial_time_local >500  ){ //wait half a second for the LDR to stabilize
+            if (my()->o_lux ==-1){//if variable was not yet defined
+                float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+                my()->o_lux = Volt2LUX(vss); //Get LDR value in lux
+                }
+            char type = 'i';
+            CanManager::acknoledge(type, msg.sender);
+            break;
+        
+   }
    }
    
 } 
 
+void CanManager::measurelightAction(info_msg &msg) {
+   my()->initial_time_local = millis();
+   while(true){
+   
+        if (millis()-my()->initial_time_local >500){ //wait half a second for the LDR to stabilize
+                int data_as_int;
+                memcpy(&data_as_int, msg.data, sizeof(int));
+                if (distrControl::gainsVector[data_as_int] ==-1){
+                
+                    float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+                    float x_lux = Volt2LUX(vss); //Get LDR value in lux
+                    float gain = (x_lux - my()->o_lux) / 4000;
+                    distrControl::gainsVector[data_as_int] = gain;
+                }
+                char type = 'i';
+                CanManager::acknoledge(type, msg.sender); //intermal ack
+                break;
+            }
+   
+    }
+}
+
+
 void CanManager::NotifyThisLightAction(info_msg &msg) {
+
     int data_as_int;
     memcpy(&data_as_int, msg.data, sizeof(int));
     if (data_as_int == my()->THIS_NODE_NR ){
+        Serial.println("I am now in charge of setup");
+
         char type = 'i';
-        CanManager::acknoledge(type); //inform previous node that this node has taken over
+        CanManager::acknoledge(type, msg.sender); //inform previous node that this node has taken over
 
         analogWrite(my()->LED_PIN, 4000); //Apply control signal to LED
         CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MeasureLights, msg.data ,sizeof(msg.data ) );
@@ -65,9 +105,12 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
         float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         float x_lux = Volt2LUX(vss); //Get LDR value in lux
 
-        distrControl::gainsVector[data_as_int] = (x_lux - distrControl::gainsVector[my()->nr_ckechIn_Nodes]) / 4000;
-        
+        float gain = (x_lux - my()->o_lux) / 4000;
+        distrControl::gainsVector[data_as_int] = gain;
+
+        analogWrite(my()->LED_PIN, 0);
         if(my()->THIS_NODE_NR==my()->nr_ckechIn_Nodes - 1){//I am the last node
+            Serial.println("I was the last node - ending gains");
             CanManager::loopUntilACK( my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::ENDGAINS, nullptr ,0 );
             distrControl::endGAINS_bool = true;
             
@@ -75,7 +118,9 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
         }
         else{//pass it to the next pico
             unsigned char data[sizeof(int)];
-            memcpy(data, &my()->THIS_NODE_NR + 1, sizeof(int));
+            int next_node_nr = my()->THIS_NODE_NR + 1;
+            memcpy(data, &next_node_nr, sizeof(int));
+            Serial.print("Passing master token to next node. To node: "); Serial.println(next_node_nr);            
             //this informs pico 1 that he should light up. From now on, pico 1 will be in charge
             CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NotifyFutureLight, data ,sizeof(data) );
     
@@ -87,93 +132,15 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
 void CanManager::EndGainsAction(info_msg &msg) {
     distrControl::endGAINS_bool = true;
     char type = 'i';
-    CanManager::acknoledge(type);
-
+    CanManager::acknoledge(type, msg.sender);
 }
 
 
-void CanManager::measurelightAction(info_msg &msg) {
-   my()->initial_time = millis();
-   if (millis()-my()->initial_time >500){ //wait half a second for the LDR to stabilize
-        float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
-        float x_lux = Volt2LUX(vss); //Get LDR value in lux
-        int data_as_int;
-        memcpy(&data_as_int, msg.data, sizeof(int));
-        int index=my()->nr_ckechIn_Nodes;
-        distrControl::gainsVector[data_as_int] = (x_lux - distrControl::gainsVector[index]) / 4000;
-        char type = 'i';
-        CanManager::acknoledge(type); //intermal ack
-   }
-   
-}
+ 
 
 
-void CanManager::measureNOlightAction(info_msg &msg) {
-   my()->initial_time = millis();
-   if (millis()-my()->initial_time >500){ //wait half a second for the LDR to stabilize
-        float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
-        int index = my()->nr_ckechIn_Nodes;
-        distrControl::gainsVector[index] = Volt2LUX(vss); //Get LDR value in lux
-        char type = 'i';
-        CanManager::acknoledge(type);
-   }
-   
-} 
-
-void CanManager::NotifyThisLightAction(info_msg &msg) {
-    int data_as_int;
-    memcpy(&data_as_int, msg.data, sizeof(int));
-    if (data_as_int == my()->THIS_NODE_NR ){
-        char type = 'i';
-        CanManager::acknoledge(type); //inform previous node that this node has taken over
-
-        analogWrite(my()->LED_PIN, 4000); //Apply control signal to LED
-        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MeasureLights, msg.data ,sizeof(msg.data ) );
-
-        float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
-        float x_lux = Volt2LUX(vss); //Get LDR value in lux
-
-        distrControl::gainsVector[data_as_int] = (x_lux - distrControl::gainsVector[my()->nr_ckechIn_Nodes]) / 4000;
-        
-        if(my()->THIS_NODE_NR==my()->nr_ckechIn_Nodes - 1){//I am the last node
-            CanManager::loopUntilACK( my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::ENDGAINS, nullptr ,0 );
-            distrControl::endGAINS_bool = true;
-            
-
-        }
-        else{//pass it to the next pico
-            unsigned char data[sizeof(int)];
-            memcpy(data, &my()->THIS_NODE_NR + 1, sizeof(int));
-            //this informs pico 1 that he should light up. From now on, pico 1 will be in charge
-            CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NotifyFutureLight, data ,sizeof(data) );
-    
-        }
-
-    }
-
-}
-void CanManager::EndGainsAction(info_msg &msg) {
-    distrControl::endGAINS_bool = true;
-    char type = 'i';
-    CanManager::acknoledge(type);
-
-}
 
 
-void CanManager::measurelightAction(info_msg &msg) {
-   my()->initial_time = millis();
-   if (millis()-my()->initial_time >500){ //wait half a second for the LDR to stabilize
-        float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
-        float x_lux = Volt2LUX(vss); //Get LDR value in lux
-        int data_as_int;
-        memcpy(&data_as_int, msg.data, sizeof(int));
-        int index=my()->nr_ckechIn_Nodes;
-        distrControl::gainsVector[data_as_int] = (x_lux - distrControl::gainsVector[index]) / 4000;
-        char type = 'i';
-        CanManager::acknoledge(type); //intermal ack
-   }
-   
-}
 void CanManager::onAction(info_msg &msg) {
     Serial.println("ACTION::ON Action received");
     analogWrite(my()->LED_PIN, 4095);
@@ -220,13 +187,7 @@ void CanManager::getReferenceAction(info_msg &msg) {
     }
 }
 
-void CanManager::setDutyCycleAction(info_msg &msg) {
-    Serial.println("ACTION::Set Duty Cycle Action received");
-    float value;
-    memcpy(&value, msg.data, sizeof(float));
-    my()->my_pid.setDutyCycle(value, 1000);
-    CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
-}
+
 
 
 // Serials
@@ -250,18 +211,30 @@ void CanManager::foundHubAction(info_msg &msg) {
 
 void CanManager::WakeUpAction(info_msg &msg) {
     // If the sender is not already in the list of IDs
+    int data_as_int;
+    memcpy(&data_as_int, msg.data, sizeof(int));
     if (find(my()->list_IDS.begin(), my()->list_IDS.end(), msg.sender) == my()->list_IDS.end()) {
         // Add the sender to the list of IDs
+        Serial.println("I have found a new node");
+
         my()->list_IDS.push_back(msg.sender);
         
         // Add the number of detected nodes to the list
-
-        int data_as_int;
-        memcpy(&data_as_int, msg.data, sizeof(int));
     
         my()->list_Nr_detected_IDS.push_back(data_as_int);
         
         // Update the number of checked in nodes
         my()->nr_ckechIn_Nodes = (int)my()->list_IDS.size();
+    }
+    else{
+        int i = 0;
+        for (unsigned char id : my()->list_IDS) {
+            if (id == msg.sender) {
+                // Store the index when the entry equals msg.sender
+                my()->list_Nr_detected_IDS[i-1] = data_as_int; //i-1 because list_IDS has 3 entries (myself and 2 others) and my()->list_Nr_detected_IDS has only the 2 others
+            }
+            i++;
+        }
+    
     }
 }

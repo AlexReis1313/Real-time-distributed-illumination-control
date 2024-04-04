@@ -53,11 +53,12 @@ struct s_data
     unsigned long    last_control_time;
     unsigned long    current_time;
     unsigned long    initial_time;
+    unsigned long    initial_time_local;
 
     std::vector<int> list_Nr_detected_IDS; // List to store the number of detected IDs
     std::vector<unsigned char> list_IDS; // List to store the IDs of other picos
     std::vector<unsigned char> list_nodes; // List to store the IDs of other picos
-    std::vector<bool> list_Ack;
+    std::vector<unsigned char> list_Ack;
     int nr_ckechIn_Nodes;
     int THIS_NODE_NR;
     std::map<unsigned char, int> id_to_node;

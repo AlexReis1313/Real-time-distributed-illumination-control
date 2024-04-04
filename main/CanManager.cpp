@@ -41,14 +41,14 @@ void CanManager::canBusRotine() {
     unsigned char irq = canController.getInterrupts(); // Get the interrupt flags
     bool message_received = false;
     if (irq & MCP2515::CANINTF_RX0IF) { // Check if interrupt is from RXB0
-        Serial.println("READ FROM RX0IF");
+        //Serial.println("READ FROM RX0IF");
         canController.readMessage(MCP2515::RXB0, &frame);
         framePtrVal = reinterpret_cast<uint32_t>(&frame);
         rp2040.fifo.push_nb(framePtrVal);
         message_received = true;
     }
     if (irq & MCP2515::CANINTF_RX1IF) { // Check if interrupt is from RXB1
-        Serial.println("READ FROM RX1IF");
+        //Serial.println("READ FROM RX1IF");
         canController.readMessage(MCP2515::RXB1, &frame);
         framePtrVal = reinterpret_cast<uint32_t>(&frame);
         rp2040.fifo.push_nb(framePtrVal);
@@ -59,7 +59,7 @@ void CanManager::canBusRotine() {
     }
     uint32_t poppedFrameAddress;
     if(rp2040.fifo.pop_nb(&poppedFrameAddress)) { 
-        Serial.println("SEND MESSAGE ");
+        //Serial.println("SEND MESSAGE ");
         can_frame* poppedFrame = reinterpret_cast<can_frame*>(poppedFrameAddress);
         canController.sendMessage(poppedFrame);
         delete (poppedFrame);
@@ -110,7 +110,7 @@ void CanManager::enqueue_message(unsigned char sender, my_type type, unsigned ch
   new_frame->data[1] = type;
   //tell the other the action done
   //Serial.println("------------------------------------------------");
-  Serial.println("::Enqueue message::");
+  //Serial.println("::Enqueue message::");
   //Serial.print("can_id: "); Serial.println(new_frame->can_id);
   //Serial.print("node address: "); Serial.println(new_frame->data[0]);
   //Serial.print("type: "); Serial.println(new_frame->data[1]);
@@ -170,7 +170,7 @@ void CanManager::serial_and_actions_rotine(void) {
     }
 }
 
-void CanManager::canBUS_to_actions_rotine(void) {
+void CanManager::canBUS_to_actions_rotine(bool executeAction) {
     can_frame *frame;
 
     while (rp2040.fifo.available()) {
@@ -179,11 +179,14 @@ void CanManager::canBUS_to_actions_rotine(void) {
         info_msg pm = CanManager::extract_message(frame);
         my_type message_type = pm.type;
         unsigned char* data = pm.data;
-        
-        std::map<int, eventFunction>::iterator it = _actionMap.find(message_type);
-        if (_actionMap.find(message_type) != _actionMap.end()){
-            it->second(pm);
-            Serial.print("Type: "); Serial.print(it->first);
+        std::map<my_type, eventFunction>::iterator it = _actionMap.find(message_type);
+        if (it != _actionMap.end()) {
+            //Serial.print("Action found for message type: "); Serial.println(static_cast<int>(message_type));
+            if (executeAction){
+            (*it).second(pm);
+            }
+        } else {
+            Serial.println("No action found for this message type.");
         }
     }
     
@@ -204,33 +207,38 @@ void CanManager::checkHub() {
 
 
 
-void CanManager::acknoledge(char type){
-    unsigned char data[sizeof(int)]; //data does not hold anything
-    if (type = 'i'){ //internal ack
-        CanManager::enqueue_message(PICO_ID, my_type::ACKINTERNA, data, sizeof(data));
+void CanManager::acknoledge(char type,unsigned char data_to_send ){
 
+    
+    if (type = 'i'){ //internal ack
+        CanManager::enqueue_message(PICO_ID, my_type::ACKINTERNA, &data_to_send, sizeof(data_to_send));
     }
     else if (type ='e'){ //external ack
-        CanManager::enqueue_message(PICO_ID, my_type::ACK, data, sizeof(data));
+        CanManager::enqueue_message(PICO_ID, my_type::ACK, &data_to_send, sizeof(data_to_send));
     }
 }
 void CanManager::loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size){
+    bool executeAction=false;
+    delay(100);
+    CanManager::canBUS_to_actions_rotine(executeAction);//clear buffer of canBUS
+    executeAction = true;
     my()->last_control_time = 0;
     my()->list_Ack.clear();
+    my()->initial_time_local = millis();
     while(true){
         my()->current_time = millis();
         if (my()->current_time - my()->last_control_time >= my()->control_interval) {
             CanManager::enqueue_message(sender, type, message, msg_size);
             my()->last_control_time = millis();
         }
-        CanManager::canBUS_to_actions_rotine();
+        CanManager::canBUS_to_actions_rotine(executeAction);
         // Check if the required number of acknowledgments has been received
-        int trueCount = 0;
-        for (bool ack : my()->list_Ack) {
-            if (ack)
-                trueCount++;
+        int ackCount = 0;
+        for (unsigned char ack : my()->list_Ack) {
+            ackCount++;
         }
-        if (trueCount >= nrOfAcknoledge) {
+        bool condition_typeEndGains = type != ENDGAINS || millis() - my()->initial_time_local > 500 ;
+        if (ackCount >= nrOfAcknoledge && condition_typeEndGains) {
             break;
         }
     }
@@ -241,12 +249,14 @@ void CanManager::loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type 
 void CanManager::wake_up_grid() {
     // Initialize the number of nodes checked in with 1, since the current node is awake
     my()->nr_ckechIn_Nodes = 1;
+    my()->list_Nr_detected_IDS.clear();
     
     // Record the initial time when the process started
-    my()->initial_time = millis();
+    my()->initial_time_local = millis();
 
     my()->list_IDS.push_back((int)PICO_ID); //include my id in the list
-
+    bool executeAction=true;
+    unsigned char data[sizeof(int)];
     // Keep looping until all nodes are awake and conditions are met
     while (!CanManager::check_wake_up_condition()) {
         // Get the current time
@@ -254,16 +264,17 @@ void CanManager::wake_up_grid() {
         // If it's time to send a wake-up message
         if (my()->current_time - my()->last_control_time >= my()->control_interval) {
             // Prepare the data to be sent in the wake-up message
-            unsigned char data[sizeof(int)];
+            
             memcpy(data, &my()->nr_ckechIn_Nodes, sizeof(int));
             // Enqueue the wake-up message to be sent to all nodes
             CanManager::enqueue_message(PICO_ID, my_type::WAKE_UP, data, sizeof(data));
             // Update the last control time
             my()->last_control_time = my()->current_time;
         }
-        CanManager::canBUS_to_actions_rotine();
+        CanManager::canBUS_to_actions_rotine(executeAction);
 
     }   
+    CanManager::enqueue_message(PICO_ID, my_type::WAKE_UP, data, sizeof(data));
     Serial.println("Finished wake_up");
     Serial.print("Nr of found nodes ");Serial.print(my()->nr_ckechIn_Nodes);Serial.print(" Nr id of my pico ");Serial.println((int)PICO_ID);
 
@@ -292,8 +303,6 @@ void CanManager::wake_up_grid() {
         my()->id_to_node[my()->list_IDS[i]] = my()->list_nodes[i];
     }
 
-    // Assuming PICO_ID is already defined somewhere
-    // You can retrieve the node number for PICO_ID like this:
     my()->THIS_NODE_NR = my()->id_to_node[(int)PICO_ID];
 
       // Create a map to associate node numbers with IDs
@@ -306,47 +315,17 @@ void CanManager::wake_up_grid() {
 
 // Function to check if all nodes are awake and conditions are met
 bool CanManager::check_wake_up_condition() {
-    // Check if all detected IDs are equal to the number of checked in nodes
-
-
-    if (count(my()->list_Nr_detected_IDS.begin(), my()->list_Nr_detected_IDS.end(), my()->nr_ckechIn_Nodes) == my()->list_Nr_detected_IDS.size() &&
-        my()->nr_ckechIn_Nodes > 1 && millis() - my()->initial_time > 2000) {
+    
+    int auxiliar_de_Calculo = count(my()->list_Nr_detected_IDS.begin(), my()->list_Nr_detected_IDS.end(), my()->nr_ckechIn_Nodes);
+    if ( auxiliar_de_Calculo== my()->list_Nr_detected_IDS.size() &&
+        my()->nr_ckechIn_Nodes ==3 && millis() - my()->initial_time_local > 1000 ) { //
         return true;
     }
-    return false;
+    else{ 
+        return false;
+    }
 }
 
 
        
 
-// }
-
-// static void CanManager::enqueue_message(unsigned char* sender, my_type type, unsigned char* *message, std::size_t msg_size) {
-//     can_frame frame;
-//     frame.can_id = canbus_vars.node_address;
-//     frame.can_dlc = msg_size + 2;
-//     frame.data[0] = sender;
-//     frame.data[1] = type;
-//     memcpy(&frame.data[2], message, msg_size);
-//     canController.sendMessage(&frame);
-// }
-
-// //Unpacks an unsigned int into its constituting 4 bytes
-// void msg_to_bytes(uint32_t msg, unsigned char* * bytes) {
-//     bytes[0] = msg; bytes[1] = (msg >> 8);
-//     bytes[2] = (msg >> 16); bytes[3] = (msg >> 24);
-// }
-// //Packs the CAN frame contents into an unsigned int
-// uint32_t can_frame_to_msg(can_frame * frm) {
-//     unsigned char* b[4];
-//     b[3] = ReadData; b[2] = frm->can_id;
-//     b[1] = frm->data[1]; b[0] = frm->data[0];
-//     return bytes_to_msg(b);
-// }
-// //Packs the CAN error flags into an unsigned int
-// uint32_t error_flags_to_msg(unsigned char* canintf, unsigned char* eflg) {
-//     unsigned char* b[4];
-//     b[3] = ErrorData; b[2] = 0;
-//     b[1] = canintf; b[0] = eflg;
-//     return bytes_to_msg(b);
-// }

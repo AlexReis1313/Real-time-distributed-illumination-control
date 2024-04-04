@@ -37,11 +37,23 @@ void setup() {
     
     //Setup controller, metrics and parser
     vars_setup();
-    //CanManager::wake_up_grid();
+    CanManager::createMap();
+    delay(2000);
+    Serial.println("Going inside wakeupgrid");
     CanManager::wake_up_grid();
     CanManager::printID();
-    CanManager::createMap();
+    Serial.println("Going inside setupgains");
+
     distrControl::setUpGains();
+
+    Serial.print("Vector of gains is: ");
+    for (size_t i = 0; i < 4; ++i) {
+            Serial.print(distrControl::gainsVector[i],4); // Print current element
+            Serial.print(", "); // Print comma unless it's the last element
+            }
+    Serial.println(); 
+    Serial.println("Going to loop");
+
 
 }
 

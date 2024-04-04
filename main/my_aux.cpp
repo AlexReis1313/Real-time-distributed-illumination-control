@@ -36,24 +36,45 @@ float get_adc_digital_filter(const int n_size, int delay_Microseconds) {
     return m_median;
 }
 
+// float get_adc_digital_filter(const int n_size, int delay_Microseconds) {
+
+// int readings[n_size];  // Array to store n readings
+//   for (int i = 0; i < n_size; i++) {
+//     readings[i] = analogRead(my()->LDR_port);  // Read value and store in array
+//     delayMicroseconds(delay_Microseconds);   // Delay to stabilize readings 
+//   }
+//   std::sort(readings, readings + n_size);  // Sort the readings in ascending order using std::sort
+//   int median;  // Calculate median
+//   if (n_size % 2 == 0) { 
+//     median = (readings[(n_size/2) - 1] + readings[(n_size/2)]) / 2;
+//   } else { 
+//     median = readings[int(n_size/2)]; //int rounds number down - for n=5 - int rounds to 2
+//   }
+//   return median;
+//   }
+
+
 void get_gain(int value){ //value is a PWM of 3000
     float x_lux;
     float o; //voltage for zero light
     float x; //voltage for 3000 PWM
     float gain;
 
-    delay(1500);
-    analogWrite(my()->LED_PIN, 0);
-    delay(3000);
-    o = analogRead(my()->LDR_port)*3.3/4095;
-    my()->o_lux = Volt2LUX(o);
-    analogWrite(my()->LED_PIN, value);
-    delay(3000);
-    x = analogRead(my()->LDR_port)*3.3/4095;
-    x_lux = Volt2LUX(x);
-    my()->gain = (x_lux - my()->o_lux) / value;
-    Serial.print("Gain: "); Serial.println(my()->gain, 10);
-    delay(1000);
+    // delay(1500);
+    // analogWrite(my()->LED_PIN, 0);
+    // delay(3000);
+    // o = analogRead(my()->LDR_port)*3.3/4095;
+    // my()->o_lux = Volt2LUX(o);
+    // analogWrite(my()->LED_PIN, value);
+    // delay(3000);
+    // x = analogRead(my()->LDR_port)*3.3/4095;
+    // x_lux = Volt2LUX(x);
+    // my()->gain = (x_lux - my()->o_lux) / value;
+    // Serial.print("Gain: "); Serial.println(my()->gain, 10);
+    // delay(1000);
+
+
+    my()->gain =0.01;
 }
 
 //x_ref is in lux

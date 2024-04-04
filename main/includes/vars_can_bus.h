@@ -31,10 +31,11 @@ enum my_type : uint8_t //needs to 8 bits
   ON,
   ACK,
   ACKINTERNA,
-  MeasureNoLights,
-  MeasureLights,
-  NotifyFutureLight,
+  MeasureNoLights, //4
+  MeasureLights, //5
+  NotifyFutureLight,//6
   ENDGAINS,
+  //ACKENDGAINS,
   SET_DUTY_CYCLE,
   GET_DUTY_CYCLE,
   SET_REFERENCE,
