@@ -58,16 +58,15 @@ void vars_setup(void){
     my()->list_IDS.clear(); // Ensure the list is empty initially
     my()->list_nodes.clear();
 
+    my()->list_stream_lux = std::vector<bool>(my()->nr_ckechIn_Nodes, false);
+    my()->list_stream_duty_cycle = std::vector<bool>(my()->nr_ckechIn_Nodes, false);
+    my()->list_stream_last_minute_lux = std::vector<bool>(my()->nr_ckechIn_Nodes, false);
+    my()->list_stream_last_minute_duty_cycle = std::vector<bool>(my()->nr_ckechIn_Nodes, false);
+
+    //create pico buffers without allocation
+    std::vector<CircularBuffer> pico_buffers(my()->nr_ckechIn_Nodes, CircularBuffer((60 * 1000) / 50));
+    my()->pico_buffers = pico_buffers;
+    
     float percnt_dutycycle = (my()->u) / 4095;
     my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
-
-
-    //initialize consensus
-    my()->sendingConsensus_begin = false;
-    my()->consensus_iteration = 0;
-    my()->consensus_maxIterations = 20;
-    my()->consensus_ongoing = true;
-    //my()->send_consensus = false;
-    my()->list_Nr_detected_consensus.clear(); //contins how many consensus the others have receive. When all have received nr_ckechIn_Nodes - 1, then move to next iter
-    my()->list_consesus_received_vector.clear();
 }
