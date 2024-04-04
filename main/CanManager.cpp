@@ -123,7 +123,8 @@ info_msg CanManager::extract_message(can_frame* frame) {
   result.can_id = frame->can_id;
   memcpy(result.data, &frame->data[2], result.size);
   if (frame->can_dlc > 6)
-    result.data[6] = (frame->can_id & 0x0000ff00) >> 8;
+    result.data[6] = frame->data[6];
+    //result.data[6] = (frame->can_id & 0x0000ff00) >> 8;
   if (frame->can_dlc > 7)
     result.data[7] = (frame->can_id & 0x00ff0000) >> 16;
   return result;

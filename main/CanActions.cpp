@@ -3,6 +3,7 @@
 #include "includes/distrControl.hpp"
 #include "includes/vars.h"
 
+
 void CanManager::createMap(void) {
     //ACK
     _actionMap[my_type::ACK] = ackAction;
@@ -63,7 +64,63 @@ void CanManager::createMap(void) {
     _actionMap[my_type::MEASURE_LIGHTS] = measurelightAction;
     _actionMap[my_type::NOTIFY_FUTURE_LIGHT] = NotifyThisLightAction;
     _actionMap[my_type::ENDGAINS] = EndGainsAction;
+
+    //consensus
+    _actionMap[my_type::ACKCONSENSUS] = ACKConsensusAction;
+    _actionMap[my_type::RECEIVECONSENSUS] = ReceiveConsensusAction;
+    _actionMap[my_type::BEGINCONSENSUS] = BeginConsensusAction;
+
+   
+
 }
+
+
+void CanManager::BeginConsensusAction(info_msg &msg){
+    distrControl::initializeNewConsensus();
+    char type = 'i';
+    CanManager::acknoledge(type, msg.sender);
+}
+
+
+void CanManager::ACKConsensusAction(info_msg &msg){
+    if(my()->id_to_node[msg.sender] != my()->THIS_NODE_NR){
+        int data_as_int;
+        memcpy(&data_as_int, msg.data, sizeof(int));
+        int node = my()->id_to_node[msg.sender];
+        my()->list_Nr_detected_consensus[node] = data_as_int; //i-1 because list_IDS has 3 entries (myself and 2 others) and my()->list_Nr_detected_IDS has only the 2 others
+}
+}
+
+ 
+void CanManager::ReceiveConsensusAction(info_msg &msg){
+    int node = my()->id_to_node[msg.sender];
+
+    float* float_ptr = reinterpret_cast<float*>(&msg.data[0]); // Assuming little-endian representation
+    float extracted_float = *float_ptr;
+    // Extract unsigned char from the 7th byte
+    int extracted_int = static_cast<int>(msg.data[6]); //This is the entry of the vector sent
+
+    if (my()->list_consesus_received_vector[node]<3 && distrControl::all_d[node][extracted_int]==0 ){//I have not yet received consesus dimings from this node
+        my()->list_consesus_received_vector[node] +=1;
+        distrControl::all_d[node][extracted_int] = extracted_float;
+        int count=0;
+        for(int i = 0; i < my()->nr_ckechIn_Nodes; i++){
+            if(my()->list_consesus_received_vector[node]==3){
+                count +=1;
+            }
+        }
+        my()->list_Nr_detected_consensus[my()->THIS_NODE_NR] = count;
+        if (count == my()->nr_ckechIn_Nodes-1){
+        //my()->iHaveReceivedAllConsensus = true;
+        }
+    }
+}
+
+
+
+
+
+
 
 void CanManager::ackInternalAction(info_msg &msg) {
     int value;

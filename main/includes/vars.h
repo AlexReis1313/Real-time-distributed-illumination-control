@@ -72,6 +72,15 @@ struct s_data
     std::map<unsigned char, int> id_to_node;
     std::map<int, unsigned char> node_to_id;
 
+    //consensus
+    int consensus_iteration;
+    int consensus_maxIterations;
+    bool consensus_ongoing;
+    bool send_consensus;
+    std::vector<int> list_Nr_detected_consensus; //contins how many consensus the others have receive. When all have received nr_ckechIn_Nodes - 1, then move to next iter
+    std::vector<int> list_consesus_received_vector;
+    bool sendingConsensus_begin;
+
 
 };
 

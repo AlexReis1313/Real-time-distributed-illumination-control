@@ -102,5 +102,8 @@ class CanManager {
         static void     NotifyThisLightAction(info_msg &msg);
         static void     EndGainsAction(info_msg &msg);
 
-
+        //Consensus
+        static void BeginConsensusAction(info_msg &msg);
+        static void ACKConsensusAction(info_msg &msg);
+        static void ReceiveConsensusAction(info_msg &msg);
 };

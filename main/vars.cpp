@@ -60,4 +60,14 @@ void vars_setup(void){
 
     float percnt_dutycycle = (my()->u) / 4095;
     my()->my_metrics.updateMetrics(my()->x_ref, my()->vss_lux , percnt_dutycycle);
+
+
+    //initialize consensus
+    my()->sendingConsensus_begin = false;
+    my()->consensus_iteration = 0;
+    my()->consensus_maxIterations = 20;
+    my()->consensus_ongoing = true;
+    //my()->send_consensus = false;
+    my()->list_Nr_detected_consensus.clear(); //contins how many consensus the others have receive. When all have received nr_ckechIn_Nodes - 1, then move to next iter
+    my()->list_consesus_received_vector.clear();
 }

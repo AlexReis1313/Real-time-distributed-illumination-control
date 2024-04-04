@@ -77,7 +77,10 @@ enum my_type : uint8_t //needs to 8 bits
   STOP_STREAM_DUTY_CYCLE,
 
   FOUND_HUB,
-
+  //consensus
+  ACKCONSENSUS,
+  RECEIVECONSENSUS,
+  BEGINCONSENSUS,
   
 };
 

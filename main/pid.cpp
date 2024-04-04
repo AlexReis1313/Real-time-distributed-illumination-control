@@ -38,7 +38,7 @@ float pid::compute_control( float r, float y ) {
 void pid::setFeedback(bool value) {
     this->feedback = value;
 }
-void setUffConsensus(float _uff){
+void pid::setUffConsensus(float _uff){
     this->uff = _uff;
 }
 

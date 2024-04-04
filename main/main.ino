@@ -102,6 +102,7 @@ void setup1() {
 void loop() {
 
     CanManager::serial_and_actions_rotine();
+    consensus_rotine();
     controller_rotine();
     stream_rotine();
 }
@@ -111,3 +112,46 @@ void loop1() {
 }
 
 
+void consensus_rotine(){
+if (my()->consensus_ongoing){
+    if(my()->consensus_iteration < my()->consensus_maxIterations){
+        int count = 0;
+        for(int i = 0; i < my()->nr_ckechIn_Nodes; i++){
+         if( my()->list_Nr_detected_consensus[i] == my()->nr_ckechIn_Nodes-1) {
+            count +=1;
+         }
+        } 
+        if (count==3){ //all nodes have receives all information, let's proced
+            my()->consensus_iteration +=1;
+            distrControl::ComputeConsensus();         
+        }
+        else{
+            distrControl::sendConsensus();
+            unsigned char data[sizeof(int)];
+            memcpy(data, &my()->list_Nr_detected_consensus[my()->THIS_NODE_NR] , sizeof(int)); //enviar nr de vectores completos q já recebi
+            CanManager::enqueue_message(PICO_ID, my_type::ACKCONSENSUS, data, sizeof(data));  
+        }
+
+    }
+    else{
+        my()->consensus_ongoing = false;
+        my()->my_pid.setUffConsensus(distrControl::calculated_d_vector[my()->THIS_NODE_NR]);
+    }
+
+
+}
+else if(my()->sendingConsensus_begin){
+    int ackCount = 0;
+    for (unsigned char ack : my()->list_Ack) {
+            ackCount++;
+        }
+    if(ackCount>=my()->nr_ckechIn_Nodes-1){//iff all nodes in grid ack the start of the consensus
+        my()->sendingConsensus_begin = false;
+        distrControl::initializeNewConsensus();
+    
+    }
+
+}
+
+
+}
