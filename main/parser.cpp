@@ -2,6 +2,7 @@
 #include "includes/CanManager.hpp"
 #include "includes/vars.h"
 #include "includes/my_aux.h"
+#include "includes/distrControl.hpp"
 
 Parser::Parser() {}
 
@@ -12,6 +13,7 @@ void Parser::parseCommand(const String& command) {
     int i; //Led number pin
     float val;
     char item;
+    int nb;
     //Serial.println("----------NEW COMMAND---------");
     if (command.length() == 0) {
         Serial.println("Command empty!");
@@ -19,11 +21,22 @@ void Parser::parseCommand(const String& command) {
     }
     switch (cmd) {
         case 'g': // Getters
-            if (sscanf(command.c_str(), "g %c %f", &item, &val) == 2){
+            if (command.startsWith("g b ")) { // Check if it's a buffer request
+                char x;
+                int i;
+                if (sscanf(command.c_str(), "g b %c %d", &x, &i) == 2) {
+                    // Call a function to handle buffer retrieval
+                    this->getBuffer(x, i);
+                } 
+                else {
+                    Serial.println("err");
+                }
+            }
+            else if (sscanf(command.c_str(), "g %c %f", &item, &val)){
                 this->getters(item, val);
                 //Serial.println("ack");
             }
-            else{
+            else {
                 Serial.println("err");           
             }
             break;
@@ -118,21 +131,16 @@ void Parser::parseCommand(const String& command) {
             int value;
             if (sscanf(command.c_str(), "s %c %d", &i, &value) == 2){
                 unsigned char lil = static_cast<unsigned char>(i);
+                int id = my()->id_to_node[value];
                 if (lil == 'l') {
-                    if (value == HUB) {
-                        my()->stream_lux = true;
-                    }
-                    else {
-                        CanManager::enqueue_message(value, my_type::START_STREAM_LUX, nullptr, 0);
-                    }
+                    Serial.print("size: "); Serial.println(my()->list_stream_lux.size());
+                    my()->list_stream_lux[id] = true;
+                    Serial.print("bool val: "); Serial.println(my()->list_stream_lux[id]);
                 }
                 else if (lil == 'd') {
-                    if (value == HUB) {
-                        my()->stream_duty_cycle = true;
-                    }
-                    else {
-                        CanManager::enqueue_message(value, my_type::START_STREAM_DUTY_CYCLE, nullptr, 0);
-                    }
+                    Serial.println("cheguei!");
+                    my()->list_stream_duty_cycle[id] = true;
+                    Serial.print("bool val: "); Serial.println(my()->list_stream_duty_cycle[id]);
                 }
             }
             else {
@@ -143,21 +151,65 @@ void Parser::parseCommand(const String& command) {
             int valueS;
             if (sscanf(command.c_str(), "S %c %d", &i, &valueS) == 2){
                 unsigned char i_char = static_cast<unsigned char>(i);
+                int idS = my()->id_to_node[valueS]; 
                 if (i_char == 'l') {
-                    if (valueS == HUB) {
-                        my()->stream_lux = false;
-                    }
-                    else {
-                        CanManager::enqueue_message(valueS, my_type::STOP_STREAM_LUX, nullptr, 0);
-                    }
+                    my()->list_stream_lux[idS] = false;
+                    Serial.print("S bool val: "); Serial.println(my()->list_stream_lux[idS]);
                 }
                 else if (i_char == 'd') {
-                    if (valueS == HUB) {
-                        my()->stream_duty_cycle = false;
-                    }
-                    else {
-                        CanManager::enqueue_message(valueS, my_type::STOP_STREAM_DUTY_CYCLE, nullptr, 0);
-                    }
+                    my()->list_stream_duty_cycle[idS] = false;
+                    Serial.print("S bool val: "); Serial.println(my()->list_stream_duty_cycle[idS]);
+                }
+            }
+            else {
+                Serial.println("err");
+            }
+            break;
+        case 'O':
+            if (sscanf(command.c_str(), "O %d %f", &i, &val) == 2){
+                unsigned char i_char = static_cast<unsigned char>(i);
+                if (i_char == HUB) {
+                    distrControl::set_lower_bound_occupied(val);
+                    Serial.println("ack");
+                }
+                else {
+                    uint8_t new_data[6] = {0};
+                    memcpy(new_data, &(val), sizeof(val));
+                    CanManager::enqueue_message(i_char, my_type::SET_LOWER_BOUND_OCCUPIED, new_data, sizeof(new_data));
+                }
+            }
+            else {
+                Serial.println("err");
+            }
+            break;
+        case 'U':
+            if (sscanf(command.c_str(), "U %d %f", &i, &val) == 2){
+                unsigned char i_char = static_cast<unsigned char>(i);
+                if (i_char == HUB) {
+                    distrControl::set_lower_bound_unoccupied(val);
+                    Serial.println("ack");
+                }
+                else {
+                    uint8_t new_data[6] = {0};
+                    memcpy(new_data, &(val), sizeof(val));
+                    CanManager::enqueue_message(i_char, my_type::SET_LOWER_BOUND_UNOCCUPIED, new_data, sizeof(new_data));
+                }
+            }
+            else {
+                Serial.println("err");
+            }
+            break;
+        case 'c':
+            if (sscanf(command.c_str(), "c %d %f", &i, &val) == 2){
+                unsigned char i_char = static_cast<unsigned char>(i);
+                if (i_char == HUB) {
+                    distrControl::set_cost(val);
+                    Serial.println("ack");
+                }
+                else {
+                    uint8_t new_data[6] = {0};
+                    memcpy(new_data, &(val), sizeof(val));
+                    CanManager::enqueue_message(i_char, my_type::SET_CURRENT_ENERGY_COST, new_data, sizeof(new_data));
                 }
             }
             else {
@@ -294,8 +346,67 @@ void Parser::getters(char &item, int val) {
                 CanManager::enqueue_message(PICO_ID, my_type::GET_AVERAGE_FLICKER, new_data, sizeof(new_data));
             }
             break;
+        case 'O': //LOWER BOUND OCCUPIED
+            if (val == HUB) {
+                Serial.printf("O %d %lf\n", PICO_ID, distrControl::get_lower_bound_occupied());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_LOWER_BOUND_OCCUPIED, new_data, sizeof(new_data));
+            }
+            break;
+        case 'U': //LOWER BOUND UNOCCUPIED
+            if (val == HUB) {
+                Serial.printf("U %d %lf\n", PICO_ID, distrControl::get_lower_bound_unoccupied());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_LOWER_BOUND_UNOCCUPIED, new_data, sizeof(new_data));
+            }
+            break;
+        case 'c': //CURRENT ENERGY COST
+            if (val == HUB) {
+                Serial.printf("C %d %lf\n", PICO_ID, distrControl::get_cost());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_CURRENT_ENERGY_COST, new_data, sizeof(new_data));
+            }
+            break;
+        case 'L': ///CURRENT LOWER BOUND
+            if (val == HUB) {
+                Serial.printf("L %d %lf\n", PICO_ID, distrControl::get_lower_bound());
+            }
+            else {
+                uint8_t new_data[6] = {0};
+                memcpy(new_data, &(val), sizeof(val));
+                CanManager::enqueue_message(PICO_ID, my_type::GET_CURRENT_LOWER_BOUND, new_data, sizeof(new_data));
+            }
+            break;
         default:
             Serial.println("err");
             break;
+    }
+}
+
+void Parser::getBuffer(char x, int i) { //LAST_MINUTE_BUFFER
+    //Serial.print("x: "); Serial.println(x);
+    //Serial.print("i: "); Serial.println(i);
+    int id = my()->id_to_node[i];
+    if (x == 'l') {
+        //Serial.println("entrei NO L ");
+        my()->list_stream_last_minute_lux[my()->id_to_node[id]] = true;
+        Serial.print("bool val: "); Serial.println(my()->list_stream_last_minute_lux[my()->id_to_node[id]]);
+    }
+    else if (x == 'd') {
+        my()->list_stream_last_minute_duty_cycle[my()->id_to_node[id]] = true;
+        Serial.print("bool val: "); Serial.println(my()->list_stream_last_minute_duty_cycle[my()->id_to_node[id]]);
+
+    }
+    else {
+        Serial.println("err");
     }
 }

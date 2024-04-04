@@ -3,13 +3,13 @@
 #include "includes/distrControl.hpp"
 #include "includes/vars.h"
 
-
 void CanManager::createMap(void) {
     //ACK
     _actionMap[my_type::ACK] = ackAction;
     _actionMap[my_type::ACKINTERNA] = ackInternalAction;
 
 
+    //SETTERS 
     //SETTERS
     _actionMap[my_type::SET_REFERENCE] = setReferenceAction;
     _actionMap[my_type::SET_DUTY_CYCLE] = setDutyCycleAction;
@@ -19,6 +19,12 @@ void CanManager::createMap(void) {
 
 
     //STREAM
+    //_actionMap[my_type::START_STREAM_LUX] = startStreamLuxAction;
+    //_actionMap[my_type::START_STREAM_DUTY_CYCLE] = startStreamDutyCycleAction;
+    //_actionMap[my_type::STOP_STREAM_LUX] = stopStreamLuxAction;
+    //_actionMap[my_type::STOP_STREAM_DUTY_CYCLE] = stopStreamDutyCycleAction;
+    //_actionMap[my_type::STAR_BUFFER_PRINT_LUX] = startBufferPrintLuxAction;
+    //_actionMap[my_type::STAR_BUFFER_PRINT_DUTY_CYCLE] = startBufferPrintDutyCycleAction;
     _actionMap[my_type::START_STREAM_LUX] = startStreamLuxAction;
     _actionMap[my_type::START_STREAM_DUTY_CYCLE] = startStreamDutyCycleAction;
     _actionMap[my_type::STOP_STREAM_LUX] = stopStreamLuxAction;
@@ -55,7 +61,8 @@ void CanManager::createMap(void) {
     _actionMap[my_type::SERIAL_GET_AVERAGE_FLICKER] = serialGetAverageFlickerAction;
     _actionMap[my_type::SERIAL_STREAM_LUX] = serialStreamLuxAction;
     _actionMap[my_type::SERIAL_STREAM_DUTY_CYCLE] = serialStreamDutyCycleAction;
-
+    //_actionMap[my_type::SERIAL_GET_LAST_MINUTE_BUFFER_LUX] = serialGetLastMinuteBufferLuxAction;
+    //_actionMap[my_type::SERIAL_GET_LAST_MINUTE_BUFFER_DUTY_CYCLE] = serialGetLastMinuteBufferDutyCycleAction;
 
     //HUB
     _actionMap[my_type::FOUND_HUB] = foundHubAction;
@@ -69,6 +76,21 @@ void CanManager::createMap(void) {
     _actionMap[my_type::ENDGAINS] = EndGainsAction;
 
 
+    //TABLE 3
+    _actionMap[my_type::GET_LOWER_BOUND_OCCUPIED] = getLowerBoundOccupiedAction;
+    _actionMap[my_type::SET_LOWER_BOUND_OCCUPIED] = setLowerBoundOccupiedAction;
+    _actionMap[my_type::GET_LOWER_BOUND_UNOCCUPIED] = getLowerBoundUnoccupiedAction;
+    _actionMap[my_type::SET_LOWER_BOUND_UNOCCUPIED] = setLowerBoundUnoccupiedAction;
+    _actionMap[my_type::GET_CURRENT_LOWER_BOUND] = getCurrentLowerBoundAction;
+    _actionMap[my_type::GET_CURRENT_ENERGY_COST] = getCurrentEnergyCostAction;
+    _actionMap[my_type::SET_CURRENT_ENERGY_COST] = setCurrentEnergyCostAction;
+    _actionMap[my_type::RESTART] = restartAction;
+    _actionMap[my_type::SERIAL_GET_LOWER_BOUND_OCCUPIED] = serialGetLowerBoundOccupiedAction;
+    _actionMap[my_type::SERIAL_GET_LOWER_BOUND_UNOCCUPIED] = serialGetLowerBoundUnoccupiedAction;
+    _actionMap[my_type::SERIAL_GET_CURRENT_LOWER_BOUND] = serialGetCurrentLowerBoundAction;
+    _actionMap[my_type::SERIAL_GET_CURRENT_ENERGY_COST] = serialGetCurrentEnergyCostAction;
+
+}
     //consensus
     _actionMap[my_type::ACKCONSENSUS] = ACKConsensusAction;
     _actionMap[my_type::RECEIVECONSENSUS0] = ReceiveConsensusAction_vector0;
@@ -321,7 +343,7 @@ void CanManager::setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( un
         my()->x_ref = x_ref_value;
         my()->ref_volts = Volt2LUX(x_ref_value);
         Serial.print("New reference set: "); Serial.println(my()->x_ref); 
-        CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
+        //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
     }
 }
 
@@ -334,7 +356,7 @@ void CanManager::setDutyCycleAction(info_msg &msg) {
         my()->my_pid.setDutyCycle(value, time);
         Serial.print("New duty cycle set: "); Serial.println(value);
         Serial.print("Time (s): "); Serial.println(time);
-        CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
+        //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
     }
 }
 
@@ -345,7 +367,7 @@ void CanManager::setOccupancyAction(info_msg &msg) {
         Serial.println("ACTION::Set Occupancy Action received");
         my()->occupancy = (bool)value;
         Serial.print("New occupancy set: "); Serial.println((bool)value);
-        CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
+        //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
         
     }
 }
@@ -357,7 +379,7 @@ void CanManager::setAntiWindupAction(info_msg &msg) {
         Serial.println("ACTION::Set Anti Windup Action received");
         my()->my_pid.setAntiWindup((bool)value);
         Serial.print("New anti windup set: "); Serial.println(value);
-        CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
+        //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
     }
 }         
 
@@ -368,70 +390,7 @@ void CanManager::setFeedbackAction(info_msg &msg) {
         Serial.println("ACTION::Set Feedback Action received");
         my()->my_pid.setFeedback((bool)value);
         Serial.print("New feedback set: "); Serial.println(value);
-        CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
-    }
-}
-
-//STREAM
-void CanManager::startStreamLuxAction(info_msg &msg) {
-    //Serial.print("msg id: "); Serial.println(msg.can_id);
-    //Serial.print("PICO_ID: "); Serial.println(PICO_ID);
-    if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Stream LUX Action received");
-        my()->stream_lux = true;
-        //CanManager::enqueue_message(PICO_ID, my_type::SERIAL_STREAM_LUX, msg.data, sizeof(msg.data);
-    }
-}
-
-void CanManager::startStreamDutyCycleAction(info_msg &msg) {
-    if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Stream Duty Cycle Action received");
-        my()->stream_duty_cycle = true;
-        //CanManager::enqueue_message(PICO_ID, my_type::SERIAL_STREAM_DUTY_CYCLE, msg.data, sizeof(msg.data));
-    }
-}
-
-void CanManager::serialStreamLuxAction(info_msg &msg) {
-    //Serial.println("ACTION::SERIAL Stream Lux Action received");
-    float value;
-    int id;
-   
-    id = static_cast<int>(msg.can_id);
-    memcpy(&value, msg.data, sizeof(float));
-    if (PICO_ID == HUB) {
-        Serial.print("s l "); 
-        Serial.print(id); Serial.print(" "); 
-        Serial.print(value); Serial.print(" ");
-        Serial.println(millis() - my()->initial_time);
-    }
-}
-
-void CanManager::stopStreamDutyCycleAction(info_msg &msg) {
-    if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Stop Stream Duty Cycle Action received");
-        my()->stream_duty_cycle = false;
-    }
-}
-
-void CanManager::stopStreamLuxAction(info_msg &msg) {
-    if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Stop Stream Lux Action received");
-        my()->stream_lux = false;
-    }
-}
-
-void CanManager::serialStreamDutyCycleAction(info_msg &msg) {
-    //Serial.println("ACTION::SERIAL Stream Duty Cycle Action received");
-    float value;
-    int id;
-
-    id = static_cast<int>(msg.can_id);
-    memcpy(&value, msg.data, sizeof(float));
-    if (PICO_ID == HUB) {
-        Serial.print("s l "); 
-        Serial.print(id); Serial.print(" "); 
-        Serial.print(value); Serial.print(" ");
-        Serial.println(millis() - my()->initial_time);
+        //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
     }
 }
 
@@ -739,3 +698,100 @@ void CanManager::WakeUpAction(info_msg &msg) {
     
     }
 }
+
+void CanManager::ackInternalAction(info_msg &msg) {
+    int value;
+    memcpy(&value, msg.data, sizeof(int));
+    if (value == PICO_ID){
+        if (find(my()->list_Ack.begin(), my()->list_Ack.end(), msg.sender) == my()->list_Ack.end()){// is there this id in the list?
+            my()->list_Ack.push_back(msg.sender);
+        }
+    }
+}
+
+void CanManager::ackAction(info_msg &msg) {
+    if (PICO_ID == HUB){
+        Serial.println("ACTION::ACK Action received");
+    }
+    //enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
+}
+
+void CanManager::measureNOlightAction(info_msg &msg) {
+   my()->initial_time_local = millis();
+   while(true){
+        if (millis()-my()->initial_time_local >500  ){ //wait half a second for the LDR to stabilize
+            if (my()->o_lux ==-1){//if variable was not yet defined
+                float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+                my()->o_lux = Volt2LUX(vss); //Get LDR value in lux
+                //Serial.print("Measuring o lux :");Serial.println(my()->o_lux);
+                }
+            char type = 'i';
+            CanManager::acknoledge(type, msg.sender);
+            break;
+        }
+   }
+   
+} 
+
+void CanManager::measurelightAction(info_msg &msg) {
+   my()->initial_time_local = millis();
+   while(true){
+   
+        if (millis()-my()->initial_time_local >500){ //wait half a second for the LDR to stabilize
+                int data_as_int;
+                memcpy(&data_as_int, msg.data, sizeof(int));
+                if (distrControl::gainsVector[data_as_int] ==0){
+                
+                    float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+                    float x_lux = Volt2LUX(vss); //Get LDR value in lux
+                    float gain = (x_lux - my()->o_lux) / 4000;
+                    distrControl::gainsVector[data_as_int] = gain;
+                    //Serial.print("Measuring gain :");Serial.println(gain);
+                }
+                char type = 'i';
+                CanManager::acknoledge(type, msg.sender); //intermal ack
+                break;
+            }
+   
+    }
+}
+
+
+void CanManager::NotifyThisLightAction(info_msg &msg) {
+    int data_as_int;
+    memcpy(&data_as_int, msg.data, sizeof(int));
+    if (data_as_int == my()->THIS_NODE_NR ){
+        Serial.println("I am now in charge of setup");
+        char type = 'i';
+        CanManager::acknoledge(type, msg.sender); //inform previous node that this node has taken over
+        analogWrite(my()->LED_PIN, 4000); //Apply control signal to LED
+        CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MEASURE_LIGHTS, msg.data ,sizeof(msg.data ) );
+        float vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
+        float x_lux = Volt2LUX(vss); //Get LDR value in lux
+        float gain = (x_lux - my()->o_lux) / 4000;
+        distrControl::gainsVector[data_as_int] = gain;
+        analogWrite(my()->LED_PIN, 0);
+        if(my()->THIS_NODE_NR==my()->nr_ckechIn_Nodes - 1){//I am the last node
+            Serial.println("I was the last node - ending gains");
+            CanManager::loopUntilACK( my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::ENDGAINS, nullptr ,0 );
+            distrControl::endGAINS_bool = true;
+        }
+        else{//pass it to the next pico
+            unsigned char data[sizeof(int)];
+            int next_node_nr = my()->THIS_NODE_NR + 1;
+            memcpy(data, &next_node_nr, sizeof(int));
+            Serial.print("Passing master token to next node. To node: "); Serial.println(next_node_nr);            
+            //this informs pico 1 that he should light up. From now on, pico 1 will be in charge
+            CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NOTIFY_FUTURE_LIGHT, data ,sizeof(data) );
+        }
+
+    }
+
+}
+
+void CanManager::EndGainsAction(info_msg &msg) {
+    distrControl::endGAINS_bool = true;
+    char type = 'i';
+    CanManager::acknoledge(type, msg.sender);
+}
+

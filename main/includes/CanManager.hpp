@@ -56,10 +56,12 @@ class CanManager {
         static void     setFeedbackAction(info_msg &msg);
 
         //STREAM
-        static void     startStreamLuxAction(info_msg &msg);
-        static void     startStreamDutyCycleAction(info_msg &msg);
-        static void     stopStreamDutyCycleAction(info_msg &msg);
-        static void     stopStreamLuxAction(info_msg &msg);
+        // static void     startStreamLuxAction(info_msg &msg);
+        // static void     startStreamDutyCycleAction(info_msg &msg);
+        // static void     stopStreamDutyCycleAction(info_msg &msg);
+        // static void     stopStreamLuxAction(info_msg &msg);
+        // static void     startBufferPrintLuxAction(info_msg &msg);
+        // static void     startBufferPrintDutyCycleAction(info_msg &msg);
 
         //GETTERS
         static void     getDutyCycleAction(info_msg &msg);
@@ -90,11 +92,13 @@ class CanManager {
         static void     serialGetAverageFlickerAction(info_msg &msg);
         static void     serialStreamLuxAction(info_msg &msg);
         static void     serialStreamDutyCycleAction(info_msg &msg);
+        //static void     serialGetLastMinuteBufferLuxAction(info_msg &msg);
+        //static void     serialGetLastMinuteBufferDutyCycleAction(info_msg &msg);
 
         //HUB
         static void     foundHubAction(info_msg &msg);
 
-        //OTHERS
+        //WAKE UP
         static void     WakeUpAction(info_msg &msg);
         static void     ackInternalAction(info_msg &msg);
         static void     measureNOlightAction(info_msg &msg);
@@ -102,6 +106,19 @@ class CanManager {
         static void     NotifyThisLightAction(info_msg &msg);
         static void     EndGainsAction(info_msg &msg);
 
+        //TABLE 3
+        static void     setLowerBoundOccupiedAction(info_msg &msg);
+        static void     setLowerBoundUnoccupiedAction(info_msg &msg);
+        static void     getLowerBoundOccupiedAction(info_msg &msg);
+        static void     getLowerBoundUnoccupiedAction(info_msg &msg);
+        static void     getCurrentLowerBoundAction(info_msg &msg);
+        static void     getCurrentEnergyCostAction(info_msg &msg);
+        static void     setCurrentEnergyCostAction(info_msg &msg);
+        static void     restartAction(info_msg &msg);
+        static void     serialGetLowerBoundOccupiedAction(info_msg &msg);
+        static void     serialGetLowerBoundUnoccupiedAction(info_msg &msg);
+        static void     serialGetCurrentLowerBoundAction(info_msg &msg);
+        static void     serialGetCurrentEnergyCostAction(info_msg &msg);
         //Consensus
         static void BeginConsensusAction(info_msg &msg);
         static void ACKConsensusAction(info_msg &msg);

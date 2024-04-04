@@ -14,7 +14,7 @@
 #include "pid.h"
 #include "parser.hpp"
 #include "metrics.hpp"
-
+#include "circularBuffer.hpp"
 
 typedef struct s_data		t_data;
 typedef struct s_time_vars  t_time_vars;
@@ -56,12 +56,21 @@ struct s_data
     unsigned long    initial_time_local;
     unsigned long    elapsed_time;
     unsigned long    last_time_stream;
+    unsigned long    last_time_stream_dc;
+
 
     float            nominal_power;
     
     bool             stream_lux;
     bool             stream_duty_cycle;
     int              stream_id;
+
+    std::vector<bool> list_stream_lux;
+    std::vector<bool> list_stream_duty_cycle;
+    std::vector<bool> list_stream_last_minute_lux;
+    std::vector<bool> list_stream_last_minute_duty_cycle;
+
+    std::vector<CircularBuffer>  pico_buffers;    
 
     std::vector<int> list_Nr_detected_IDS; // List to store the number of detected IDs
     std::vector<unsigned char> list_IDS; // List to store the IDs of other picos
