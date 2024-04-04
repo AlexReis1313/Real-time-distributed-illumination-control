@@ -13,7 +13,7 @@ void CanManager::flashIDsetup() {
     rp2040.idleOtherCore();
     flash_get_unique_id(canbus_vars.this_pico_flash_id);
     rp2040.resumeOtherCore();
-    canbus_vars.node_address = canbus_vars.this_pico_flash_id[6];
+    canbus_vars.node_address = canbus_vars.this_pico_flash_id[7];
 }
 
 void CanManager::begin(char bitrate) { // Initialize CAN controller

@@ -82,7 +82,6 @@ enum my_type : uint8_t //needs to 8 bits
   MEASURE_NO_LIGHTS,
   MEASURE_LIGHTS,
   NOTIFY_FUTURE_LIGHT,
-  ENDGAINS,
 };
 
 struct info_msg {

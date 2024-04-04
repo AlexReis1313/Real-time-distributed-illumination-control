@@ -182,17 +182,7 @@ void CanManager::EndGainsAction(info_msg &msg) {
 
 
 
-void CanManager::onAction(info_msg &msg) {
-    Serial.println("ACTION::ON Action received");
-    analogWrite(my()->LED_PIN, 4095);
-    CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
-}
 
-void CanManager::offAction(info_msg &msg) {
-    Serial.println("ACTION::OFF Action received");
-    analogWrite(my()->LED_PIN, 0);
-    CanManager::enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
-}
 
 //Setters
 void CanManager::setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( unsigned char*)
@@ -605,10 +595,23 @@ void CanManager::WakeUpAction(info_msg &msg) {
         Serial.println("I have found a new node");
 
         my()->list_IDS.push_back(msg.sender);
+        
         // Add the number of detected nodes to the list
     
         my()->list_Nr_detected_IDS.push_back(data_as_int);
+        
         // Update the number of checked in nodes
         my()->nr_ckechIn_Nodes = (int)my()->list_IDS.size();
+    }
+    else{
+        int i = 0;
+        for (unsigned char id : my()->list_IDS) {
+            if (id == msg.sender) {
+                // Store the index when the entry equals msg.sender
+                my()->list_Nr_detected_IDS[i-1] = data_as_int; //i-1 because list_IDS has 3 entries (myself and 2 others) and my()->list_Nr_detected_IDS has only the 2 others
+            }
+            i++;
+        }
+    
     }
 }
