@@ -25,6 +25,7 @@ float distrControl::tolerance=0.001;
 float distrControl::optimization_rho= 0.07;
 float distrControl::cost=1;
 float distrControl::current_lower_bound=10;
+int distrControl::sending_vector_entry = 0;
 
 void distrControl::setUpGains(){
     gainsVector = std::vector<float>(my()->nr_ckechIn_Nodes);
@@ -32,6 +33,12 @@ void distrControl::setUpGains(){
     current_lagrange_multipliers = std::vector<float>(my()->nr_ckechIn_Nodes);
     calculated_d_vector = std::vector<float>(my()->nr_ckechIn_Nodes);
     all_d = std::vector<std::vector<float>>(my()->nr_ckechIn_Nodes, std::vector<float>(my()->nr_ckechIn_Nodes));
+
+    my()->list_Nr_detected_consensus=  std::vector<int>(my()->nr_ckechIn_Nodes);
+    my()->list_consesus_received_vector =  std::vector<int>(my()->nr_ckechIn_Nodes);
+    //my()->list_Nr_detected_consensus.clear(); 
+    //my()->list_consesus_received_vector.clear();
+
     // Initialize inner vectors separately
     for (int i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
         all_d[i] = std::vector<float>(my()->nr_ckechIn_Nodes);
@@ -75,21 +82,29 @@ void distrControl::setUpGains(){
     while(!endGAINS_bool){ 
         CanManager::canBUS_to_actions_rotine(executeAction);
 
-    }        
+    }
+    
     Serial.println("End of setUP gains");
+    
 
 }
 
 
 void distrControl::initializeNewConsensus(){
+  Serial.println("Initializing new consensus");
   my()->consensus_ongoing = true;
+  sending_vector_entry = 0;
+  float checkValue=-101;
   for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) {
-      current_lagrange_multipliers[i] += 0;
-      all_d[i].clear();
+      current_lagrange_multipliers[i] = 0;
+      for(int j = 0; j < my()->nr_ckechIn_Nodes ; j++) {
+        all_d[i][j]=checkValue;
+      }
     }
 }
 
 void distrControl::begin_consensus(){ 
+    Serial.println("Sending begin msg consensus");
     my()->sendingConsensus_begin = true;
     my()->list_Ack.clear();
     CanManager::enqueue_message(PICO_ID, my_type::BEGINCONSENSUS, nullptr, 0);
@@ -97,6 +112,8 @@ void distrControl::begin_consensus(){
 
 
 void distrControl::ComputeConsensus() {
+  Serial.println("Computing consensus");
+
   calculateAverage();
   computeLagrangeMultipliers();
 
@@ -104,6 +121,8 @@ void distrControl::ComputeConsensus() {
   computeGlobalMinInside(); //calculated_d_vector
 
   if(!FeasibilityCheck(calculated_d_vector)) {
+    Serial.println("Searching for solution in boundary");
+
     calculated_d_vector.clear();
     computeBoundarySolutions(); //calculated_d_vector
   }
@@ -112,21 +131,58 @@ void distrControl::ComputeConsensus() {
   my()->list_consesus_received_vector.clear(); //nr of entries that I have about each node
   my()->list_consesus_received_vector[my()->THIS_NODE_NR] = 3; //I know all my entries so far
 
-  for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) { //clear all_d matrix
-    all_d[i].clear();
+  float checkValue=-101;
+  for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) { //
+      for(int j = 0; j < my()->nr_ckechIn_Nodes ; j++) {
+        all_d[i][j]=checkValue;
+      }
   }
+  
   all_d[my()->THIS_NODE_NR] = calculated_d_vector;
-
-  sendConsensus();
+  Serial.print("Computed vector is: ");
+    for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+            Serial.print(calculated_d_vector[i],4); // Print current element
+            Serial.print(", "); // Print comma unless it's the last element
+      }
+      Serial.println();
   }  
 
 void distrControl::sendConsensus(){
-  unsigned char data[sizeof(int)];
-  for (int i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
-      memcpy(data, &calculated_d_vector[i], sizeof(float));
-      // Enqueue the wake-up message to be sent to all nodes
-      CanManager::enqueue_message(PICO_ID, my_type::RECEIVECONSENSUS, data, sizeof(data));
-  }            
+  //Serial.println("Sending my vector consensus");
+  //Serial.println("Sending consensus data deativated");
+  
+  //for (int i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+  if(sending_vector_entry < my()->nr_ckechIn_Nodes){// && (my()->THIS_NODE_NR==1)){
+    
+    // Enqueue the wake-up message to be sent to all nodes
+    unsigned char data[sizeof(float)];
+
+    memcpy(data, &calculated_d_vector[sending_vector_entry], sizeof(calculated_d_vector[sending_vector_entry]));
+    
+    switch (sending_vector_entry)
+    {
+    case 0:
+      CanManager::enqueue_message(PICO_ID, my_type::RECEIVECONSENSUS0, data, sizeof(data));
+      break;
+    case 1:
+      CanManager::enqueue_message(PICO_ID, my_type::RECEIVECONSENSUS1, data, sizeof(data));
+      break;
+    case 2:
+      CanManager::enqueue_message(PICO_ID, my_type::RECEIVECONSENSUS2, data, sizeof(data));
+      break;
+    case 3:
+      CanManager::enqueue_message(PICO_ID, my_type::RECEIVECONSENSUS3, data, sizeof(data));
+      break;
+    
+    default:
+      break;
+    }
+    //CanManager::enqueue_message(PICO_ID, my_type::RECEIVECONSENSUS, nullptr, 0);
+    sending_vector_entry +=1;
+  }
+  
+ 
+              
 }
 
 
@@ -245,8 +301,16 @@ void distrControl::computeBoundarySolutions() {
     bestCost = computeCost(vector_ILBintersectDUB);
     calculated_d_vector = vector_ILBintersectDUB;
   }
-  if(bestCost == 10000) {// if no solution was meet, then assume the last solution
-    calculated_d_vector = all_d[my()->THIS_NODE_NR];
+  if(bestCost == 1000000) {// if no solution was meet, then assume the last solution
+    for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) {
+      if( all_d[my()->THIS_NODE_NR][i] ==-101){
+      calculated_d_vector[i] =0;
+      }
+      else{
+      calculated_d_vector[i] = all_d[my()->THIS_NODE_NR][i];
+      }
+      
+    }
   }
   
   

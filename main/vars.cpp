@@ -52,7 +52,7 @@ void vars_setup(void){
     //Time variables
     my()->control_interval = 10;
     my()->initial_time = millis();
-
+    my()->last_sent_consensus = millis();
     // Initialize list_Nr_detected_IDS and list_IDS
     my()->list_Nr_detected_IDS.clear(); // Ensure the list is empty initially
     my()->list_IDS.clear(); // Ensure the list is empty initially
@@ -63,10 +63,13 @@ void vars_setup(void){
 
 
     //initialize consensus
+    my()->wait_change_iter = false;
+    my()->last_consensus_time=millis();
+    my()->first_loop = 100;
     my()->sendingConsensus_begin = false;
     my()->consensus_iteration = 0;
     my()->consensus_maxIterations = 20;
-    my()->consensus_ongoing = true;
+    my()->consensus_ongoing = false;
     //my()->send_consensus = false;
     my()->list_Nr_detected_consensus.clear(); //contins how many consensus the others have receive. When all have received nr_ckechIn_Nodes - 1, then move to next iter
     my()->list_consesus_received_vector.clear();

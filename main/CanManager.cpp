@@ -200,11 +200,15 @@ void CanManager::checkHub() {
 void CanManager::acknoledge(char type,unsigned char data_to_send ){
 
     
-    if (type = 'i'){ //internal ack
+    if (type == 'i'){ //internal ack
         CanManager::enqueue_message(PICO_ID, my_type::ACKINTERNA, &data_to_send, sizeof(data_to_send));
     }
-    else if (type ='e'){ //external ack
+    else if (type =='e'){ //external ack
         CanManager::enqueue_message(PICO_ID, my_type::ACK, &data_to_send, sizeof(data_to_send));
+    }
+    else if (type =='c'){ //external ack
+        //Serial.println("ACK c");
+        CanManager::enqueue_message(PICO_ID, my_type::ACKBEGINCONSENSUS, &data_to_send, sizeof(data_to_send));
     }
 }
 void CanManager::loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type type, unsigned char *message, std::size_t msg_size){
@@ -213,7 +217,7 @@ void CanManager::loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type 
     CanManager::canBUS_to_actions_rotine(executeAction);//clear buffer of canBUS
     executeAction = true;
     my()->last_control_time = 0;
-    my()->list_Ack.clear();
+    my()->list_Ack_loopUntilACK.clear();
     my()->initial_time_local = millis();
     while(true){
         my()->current_time = millis();
@@ -224,7 +228,7 @@ void CanManager::loopUntilACK(int nrOfAcknoledge, unsigned char sender, my_type 
         CanManager::canBUS_to_actions_rotine(executeAction);
         // Check if the required number of acknowledgments has been received
         int ackCount = 0;
-        for (unsigned char ack : my()->list_Ack) {
+        for (unsigned char ack : my()->list_Ack_loopUntilACK) {
             ackCount++;
         }
         bool condition_typeEndGains = type != ENDGAINS || millis() - my()->initial_time_local > 500 ;
@@ -301,6 +305,9 @@ void CanManager::wake_up_grid() {
         my()->node_to_id[pair.second] = pair.first;
     }
     my()->list_Ack.resize(my()->nr_ckechIn_Nodes - 1); //maximum nr of acknoledges is the size of the list
+    my()->list_Ack_loopUntilACK.resize(my()->nr_ckechIn_Nodes - 1); //maximum nr of acknoledges is the size of the list
+
+    
 }
 
 

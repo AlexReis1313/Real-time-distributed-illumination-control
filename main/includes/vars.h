@@ -67,6 +67,7 @@ struct s_data
     std::vector<unsigned char> list_IDS; // List to store the IDs of other picos
     std::vector<unsigned char> list_nodes; // List to store the IDs of other picos
     std::vector<unsigned char> list_Ack;
+    std::vector<unsigned char> list_Ack_loopUntilACK;
     int nr_ckechIn_Nodes;
     int THIS_NODE_NR;
     std::map<unsigned char, int> id_to_node;
@@ -80,7 +81,10 @@ struct s_data
     std::vector<int> list_Nr_detected_consensus; //contins how many consensus the others have receive. When all have received nr_ckechIn_Nodes - 1, then move to next iter
     std::vector<int> list_consesus_received_vector;
     bool sendingConsensus_begin;
-
+    unsigned int last_sent_consensus;
+    int first_loop;
+    unsigned int last_consensus_time;
+    bool wait_change_iter;
 
 };
 

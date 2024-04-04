@@ -87,7 +87,13 @@ void setup() {
             Serial.print(", "); // Print comma unless it's the last element
             }
     Serial.println(my()->o_lux); 
+    
     Serial.println("Going to loop");
+
+    if(my()->THIS_NODE_NR == 0){
+       my()->sendingConsensus_begin = true;
+        my()->list_Ack.clear();
+    }
 
 
 }
@@ -100,58 +106,133 @@ void setup1() {
 }
 
 void loop() {
-
-    CanManager::serial_and_actions_rotine();
-    consensus_rotine();
-    controller_rotine();
-    stream_rotine();
+    if (my()->first_loop>0){
+        Wait_to_sync();
+    }
+    else{
+        if(my()->first_loop==0){my()->first_loop=-1;Serial.println("Free from begining");}
+        CanManager::serial_and_actions_rotine();
+        consensus_rotine();
+        controller_rotine();
+        stream_rotine();
+    }
 }
 
 void loop1() {
     CanManager::canBusRotine();
 }
 
+/* if (my()->consensus_iteration ==1){
+        Serial.println("Consensus ongoing");
+    }
+    my()->consensus_iteration +=1;          
+     */
 
-void consensus_rotine(){
-if (my()->consensus_ongoing){
-    if(my()->consensus_iteration < my()->consensus_maxIterations){
-        int count = 0;
-        for(int i = 0; i < my()->nr_ckechIn_Nodes; i++){
-         if( my()->list_Nr_detected_consensus[i] == my()->nr_ckechIn_Nodes-1) {
-            count +=1;
-         }
-        } 
-        if (count==3){ //all nodes have receives all information, let's proced
-            my()->consensus_iteration +=1;
-            distrControl::ComputeConsensus();         
+
+
+void Wait_to_sync(){
+    
+    if(millis()-my()->last_control_time > my()->control_interval){
+        CanManager::canBUS_to_actions_rotine(true);
+        my()->last_control_time = millis();
+        if (my()->THIS_NODE_NR ==my()->nr_ckechIn_Nodes-1 ){ //last node needs to catch up
+        my()->first_loop-=2;
         }
         else{
-            distrControl::sendConsensus();
-            unsigned char data[sizeof(int)];
-            memcpy(data, &my()->list_Nr_detected_consensus[my()->THIS_NODE_NR] , sizeof(int)); //enviar nr de vectores completos q já recebi
-            CanManager::enqueue_message(PICO_ID, my_type::ACKCONSENSUS, data, sizeof(data));  
+        my()->first_loop-=1;
+        }
+         
+    }   
+}
+void consensus_rotine(){
+if(millis()-my()->last_consensus_time > my()->control_interval*10){
+    if (my()->consensus_ongoing){
+             
+        
+        if(my()->consensus_iteration < my()->consensus_maxIterations){
+            int count = 0;
+            for(int i = 0; i < my()->nr_ckechIn_Nodes; i++){
+                if( my()->list_Nr_detected_consensus[i] == my()->nr_ckechIn_Nodes) {
+                    count +=1;
+                }
+            } 
+
+
+            int ackCount = 0;
+            for (unsigned char ack : my()->list_Ack) {
+                ackCount++;
+            }
+            if(count==3 && my()->THIS_NODE_NR==0 && !my()->wait_change_iter){
+                
+                my()->list_Ack.clear();
+                ackCount=0;
+                CanManager::enqueue_message(PICO_ID, my_type::CHANGEITER, nullptr, 0); 
+                my()->wait_change_iter = true;
+                }
+            
+
+            if (my()->consensus_iteration ==0 ){ 
+                Serial.println("New consensus iteration");
+                my()->consensus_iteration +=1;
+                distrControl::ComputeConsensus(); 
+                my()->last_sent_consensus = millis(); 
+            } 
+
+            if(my()->wait_change_iter   && ackCount==2 ){
+                 my()->wait_change_iter = false;
+                 my()->list_Ack.clear();
+                Serial.println("New consensus iteration");
+                my()->consensus_iteration +=1;
+                distrControl::ComputeConsensus(); 
+                my()->last_sent_consensus = millis();
+            }
+
+            else if(millis()-my()->last_sent_consensus > my()->control_interval && !my()->wait_change_iter){
+                
+                if ( distrControl::sending_vector_entry == my()->nr_ckechIn_Nodes){
+                    
+                    unsigned char data[sizeof(int)];
+                    memcpy(data, &(my()->list_Nr_detected_consensus[my()->THIS_NODE_NR]) , sizeof(int)); //enviar nr de vectores completos q já recebi
+                    Serial.print("I am informing that I know info from: "); Serial.println(my()->list_Nr_detected_consensus[my()->THIS_NODE_NR]);
+                    CanManager::enqueue_message(PICO_ID, my_type::ACKCONSENSUS, data, sizeof(data));  
+                    distrControl::sending_vector_entry=0;
+                }
+                else{
+                    distrControl::sendConsensus();
+                }
+                my()->last_sent_consensus = millis();
+            }
+        }
+        else{
+        
+            Serial.println("Consensus final iteration finished");
+
+            my()->consensus_ongoing = false;
+            my()->my_pid.setUffConsensus(distrControl::calculated_d_vector[my()->THIS_NODE_NR]);
+        }
+
+
+    }
+    else if(my()->sendingConsensus_begin){
+        int ackCount = 0;
+        for (unsigned char ack : my()->list_Ack) {
+                ackCount++;
+            }
+        Serial.println(ackCount);
+        if(ackCount==my()->nr_ckechIn_Nodes-1){//iff all nodes in grid ack the start of the consensus
+            my()->sendingConsensus_begin = false;
+
+            distrControl::initializeNewConsensus();
+        }
+        else{
+            if(millis()-my()->last_sent_consensus >my()->control_interval/2){
+                CanManager::enqueue_message(PICO_ID, my_type::BEGINCONSENSUS, nullptr, 0);
+                my()->last_sent_consensus = millis();
+            }
         }
 
     }
-    else{
-        my()->consensus_ongoing = false;
-        my()->my_pid.setUffConsensus(distrControl::calculated_d_vector[my()->THIS_NODE_NR]);
-    }
-
-
+    my()->last_consensus_time=millis();
 }
-else if(my()->sendingConsensus_begin){
-    int ackCount = 0;
-    for (unsigned char ack : my()->list_Ack) {
-            ackCount++;
-        }
-    if(ackCount>=my()->nr_ckechIn_Nodes-1){//iff all nodes in grid ack the start of the consensus
-        my()->sendingConsensus_begin = false;
-        distrControl::initializeNewConsensus();
-    
-    }
-
-}
-
 
 }

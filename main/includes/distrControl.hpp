@@ -6,6 +6,7 @@
 class distrControl {
     private:
         distrControl() {}
+        
         static float lower_bound_occupied, lower_bound_unoccupied, current_lower_bound, cost, tolerance, optimization_rho;
         static std::vector<float> d_average;
         //static std::vector<float> all_d;
@@ -14,7 +15,7 @@ class distrControl {
 
     public:
         static distrControl* instance;
-        
+        static int sending_vector_entry;
         static bool endGAINS_bool;
         static std::vector<float> gainsVector;
         static std::vector<float> calculated_d_vector;

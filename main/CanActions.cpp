@@ -7,23 +7,23 @@
 void CanManager::createMap(void) {
     //ACK
     _actionMap[my_type::ACK] = ackAction;
-    
     _actionMap[my_type::ACKINTERNA] = ackInternalAction;
 
+
     //SETTERS
-    
-    
     _actionMap[my_type::SET_REFERENCE] = setReferenceAction;
     _actionMap[my_type::SET_DUTY_CYCLE] = setDutyCycleAction;
     _actionMap[my_type::SET_OCCUPANCY] = setOccupancyAction; 
     _actionMap[my_type::SET_ANTI_WINDDUP] = setAntiWindupAction;
     _actionMap[my_type::SET_FEEDBACK] = setFeedbackAction;
 
+
     //STREAM
     _actionMap[my_type::START_STREAM_LUX] = startStreamLuxAction;
     _actionMap[my_type::START_STREAM_DUTY_CYCLE] = startStreamDutyCycleAction;
     _actionMap[my_type::STOP_STREAM_LUX] = stopStreamLuxAction;
     _actionMap[my_type::STOP_STREAM_DUTY_CYCLE] = stopStreamDutyCycleAction;
+
 
     //GETTERS
     _actionMap[my_type::GET_REFERENCE] = getReferenceAction;
@@ -38,6 +38,7 @@ void CanManager::createMap(void) {
     _actionMap[my_type::GET_AVERAGE_ENERGY] = getAverageEnergyAction;
     _actionMap[my_type::GET_AVERAGE_VISIBILITY] = getAverageVisibilityAction;
     _actionMap[my_type::GET_AVERAGE_FLICKER] = getAverageFlickerAction;
+
 
     //SERIALS
     _actionMap[my_type::SERIAL_GET_REFERENCE] = serialGetReferenceAction;
@@ -55,8 +56,10 @@ void CanManager::createMap(void) {
     _actionMap[my_type::SERIAL_STREAM_LUX] = serialStreamLuxAction;
     _actionMap[my_type::SERIAL_STREAM_DUTY_CYCLE] = serialStreamDutyCycleAction;
 
+
     //HUB
     _actionMap[my_type::FOUND_HUB] = foundHubAction;
+
 
     //WAKE UP
     _actionMap[my_type::WAKE_UP] = WakeUpAction;
@@ -65,44 +68,64 @@ void CanManager::createMap(void) {
     _actionMap[my_type::NOTIFY_FUTURE_LIGHT] = NotifyThisLightAction;
     _actionMap[my_type::ENDGAINS] = EndGainsAction;
 
+
     //consensus
     _actionMap[my_type::ACKCONSENSUS] = ACKConsensusAction;
-    _actionMap[my_type::RECEIVECONSENSUS] = ReceiveConsensusAction;
+    _actionMap[my_type::RECEIVECONSENSUS0] = ReceiveConsensusAction_vector0;
+    _actionMap[my_type::RECEIVECONSENSUS1] = ReceiveConsensusAction_vector1;
+    _actionMap[my_type::RECEIVECONSENSUS2] = ReceiveConsensusAction_vector2;    
+    _actionMap[my_type::RECEIVECONSENSUS3] = ReceiveConsensusAction_vector3;
+
     _actionMap[my_type::BEGINCONSENSUS] = BeginConsensusAction;
-
-   
-
+    _actionMap[my_type::ACKBEGINCONSENSUS] = ACKBeginConsensusAction;
+    _actionMap[my_type::CHANGEITER] = ChangeIterAction;
+    
 }
+
 
 
 void CanManager::BeginConsensusAction(info_msg &msg){
+    if (my()->consensus_ongoing == false){
     distrControl::initializeNewConsensus();
-    char type = 'i';
+    }
+    char type = 'c';
     CanManager::acknoledge(type, msg.sender);
 }
 
+void CanManager::ChangeIterAction(info_msg &msg){
+    Serial.println("New consensus iteration - from action");
+    my()->consensus_iteration +=1;
+    distrControl::ComputeConsensus(); 
+    
+    char type = 'c';
+    CanManager::acknoledge(type, msg.sender);
+    my()->last_sent_consensus = millis();
+}
 
 void CanManager::ACKConsensusAction(info_msg &msg){
+
     if(my()->id_to_node[msg.sender] != my()->THIS_NODE_NR){
         int data_as_int;
         memcpy(&data_as_int, msg.data, sizeof(int));
         int node = my()->id_to_node[msg.sender];
         my()->list_Nr_detected_consensus[node] = data_as_int; //i-1 because list_IDS has 3 entries (myself and 2 others) and my()->list_Nr_detected_IDS has only the 2 others
+        Serial.print("I known that node: has received:"); Serial.print(node);Serial.print(" has received info from ");Serial.println(data_as_int);
 }
 }
 
  
-void CanManager::ReceiveConsensusAction(info_msg &msg){
-    int node = my()->id_to_node[msg.sender];
 
-    float* float_ptr = reinterpret_cast<float*>(&msg.data[0]); // Assuming little-endian representation
-    float extracted_float = *float_ptr;
-    // Extract unsigned char from the 7th byte
-    int extracted_int = static_cast<int>(msg.data[6]); //This is the entry of the vector sent
 
-    if (my()->list_consesus_received_vector[node]<3 && distrControl::all_d[node][extracted_int]==0 ){//I have not yet received consesus dimings from this node
+
+void CanManager::ReceiveConsensusAction(int i,int node, float value){
+    Serial.print("ReceiveConsensusAction from ");Serial.print(node);Serial.print(" about vector entry ");Serial.print(i);Serial.print(" with value ");Serial.println(value);
+    
+    bool bool1 = my()->list_consesus_received_vector[node]<3;
+    bool bool2 = distrControl::all_d[node][i]==-101;
+    if ( bool1 && bool2){//I have not yet received consesus dimings from this node
+        //Serial.println("Entered 101 condition");
         my()->list_consesus_received_vector[node] +=1;
-        distrControl::all_d[node][extracted_int] = extracted_float;
+        distrControl::all_d[node][i] = value;
         int count=0;
         for(int i = 0; i < my()->nr_ckechIn_Nodes; i++){
             if(my()->list_consesus_received_vector[node]==3){
@@ -110,15 +133,57 @@ void CanManager::ReceiveConsensusAction(info_msg &msg){
             }
         }
         my()->list_Nr_detected_consensus[my()->THIS_NODE_NR] = count;
-        if (count == my()->nr_ckechIn_Nodes-1){
-        //my()->iHaveReceivedAllConsensus = true;
-        }
+       
     }
+    
 }
 
 
+void CanManager::ReceiveConsensusAction_vector0(info_msg &msg){
+    int node = my()->id_to_node[msg.sender];
+    int extracted_int = 0;
+    float value;
+    memcpy(&value, msg.data, sizeof(float));
+    ReceiveConsensusAction(extracted_int ,node, value);
+}
+void CanManager::ReceiveConsensusAction_vector1(info_msg &msg){
+    int node = my()->id_to_node[msg.sender];
+    int extracted_int = 1;
+    float value;
+    memcpy(&value, msg.data, sizeof(float));
+    ReceiveConsensusAction(extracted_int ,node, value);
+}
+void CanManager::ReceiveConsensusAction_vector2(info_msg &msg){
+    int node = my()->id_to_node[msg.sender];
+    int extracted_int = 2;
+    float value;
+    memcpy(&value, msg.data, sizeof(float));
+    ReceiveConsensusAction(extracted_int ,node, value);
+}
+void CanManager::ReceiveConsensusAction_vector3(info_msg &msg){
+    int node = my()->id_to_node[msg.sender];
+    int extracted_int = 3;
+    float value;
+    memcpy(&value, msg.data, sizeof(float));
+    ReceiveConsensusAction(extracted_int ,node, value);
+}
 
 
+void CanManager::ACKBeginConsensusAction(info_msg &msg) {
+    int value;
+    memcpy(&value, msg.data, sizeof(int));
+    
+    if (value == PICO_ID){
+        if (find(my()->list_Ack.begin(), my()->list_Ack.end(), msg.sender) == my()->list_Ack.end()){// is there this id in the list?
+            Serial.print("Received ack from ");Serial.println(msg.sender);
+            my()->list_Ack.push_back(msg.sender);
+         
+
+        }
+    }
+
+
+}
 
 
 
@@ -126,9 +191,9 @@ void CanManager::ackInternalAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID){
- 
-        if (find(my()->list_Ack.begin(), my()->list_Ack.end(), msg.sender) == my()->list_Ack.end()){// is there this id in the list?
-            my()->list_Ack.push_back(msg.sender);
+        if (find(my()->list_Ack_loopUntilACK.begin(), my()->list_Ack_loopUntilACK.end(), msg.sender) ==my()->list_Ack_loopUntilACK.end()){// is there this id in the list?
+            Serial.print("Received ack from ");Serial.println(msg.sender);
+            my()->list_Ack_loopUntilACK.push_back(msg.sender);
          
 
         }
@@ -142,7 +207,7 @@ void CanManager::ackAction(info_msg &msg) {
     if (PICO_ID == HUB){
         Serial.println("ACTION::ACK Action received");
     }
-    enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
+    //enqueue_message(msg.sender, my_type::ACK, nullptr, 0);
 }
 
 
