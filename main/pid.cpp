@@ -8,7 +8,7 @@ pid::pid(float _h, float _K, float b_, float Ti_, float Tt_,
         float Td_, float N_): h {_h}, K {_K}, b {b_}, 
         Ti {Ti_}, Tt{Tt_} ,Td {Td_}, N {N_}, I {0.0}, D {0.0}, 
         P{0.0}, u{0.0}, ao{0.0}, error{0.0}, b_old{0.0}, 
-        Kold{0.0}, y_old{0.0}, uff{0.0}{
+        Kold{0.0}, y_old{0.0}{
             setFeedback(true);
             setAntiWindup(true);
         }
@@ -23,7 +23,7 @@ float pid::compute_control( float r, float y ) {
     } else {
         P = K*(b*r); //feedforward part
     } 
-    float v = P + I + uff; //control signal
+    float v = P + I; //control signal
     if (dutycycle_time <= 0) {
         u = this->saturate(v, 0, my()->DAC_RANGE); //saturate output
     } else {
@@ -33,13 +33,9 @@ float pid::compute_control( float r, float y ) {
     return u;
 }
 
-
 //Setters
 void pid::setFeedback(bool value) {
     this->feedback = value;
-}
-void pid::setUffConsensus(float _uff){
-    this->uff = _uff;
 }
 
 void pid::setAntiWindup(bool value) {
