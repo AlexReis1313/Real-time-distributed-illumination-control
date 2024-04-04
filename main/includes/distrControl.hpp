@@ -6,26 +6,34 @@
 class distrControl {
     private:
         distrControl() {}
-        
         static float lower_bound_occupied, lower_bound_unoccupied, current_lower_bound, cost, tolerance, optimization_rho;
         static std::vector<float> d_average;
         //static std::vector<float> all_d;
         static std::vector<float> current_lagrange_multipliers;
-        static std::vector<float> calculated_d_vector;
-        static std::vector<std::vector<float>> all_d;
+        
 
     public:
         static distrControl* instance;
         static int sending_vector_entry;
         static bool endGAINS_bool;
         static std::vector<float> gainsVector;
+        static std::vector<float> calculated_d_vector;
+        static std::vector<std::vector<float>> all_d;
 
         static void  setUpGains();
-/* 
-        static bool Consensus::computeCost( const std::vector<float>& d_to_compute)
-        static bool Consensus::FeasibilityCheck( const std::vector<float>& d_to_check)
-        static void Consensus::calculateAverage();
- */
+
+        static void initializeNewConsensus();
+        static void begin_consensus();
+        static void sendConsensus();
+
+        static void updateD_values(const std::vector<float>& d_to_update, int node);
+        static float computeCost( const std::vector<float>& d_to_compute);
+        static bool FeasibilityCheck( const std::vector<float>& d_to_check);
+        static void calculateAverage();
+        static void computeGlobalMinInside();
+        static void computeBoundarySolutions();
+        static void ComputeConsensus();
+        static void computeLagrangeMultipliers();
 
         static void set_occupancy(bool new_occupancy);  
         static bool get_occupancy();
@@ -37,8 +45,6 @@ class distrControl {
         static float get_lower_bound();
         static void set_cost(float new_cost);
         static float get_cost(); 
-
-  
 
 
 };

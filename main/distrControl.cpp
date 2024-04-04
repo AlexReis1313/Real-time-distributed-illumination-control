@@ -3,6 +3,9 @@
 #include "includes/vars.h"
 #include "includes/my_aux.h"
 #include <cmath>
+#include <functional>
+#include <iostream>
+#include <numeric>
 #include <vector>
 
 
@@ -14,15 +17,9 @@ std::vector<std::vector<float>> distrControl::all_d; // Initialized to 0
 std::vector<float> distrControl::d_average;
 std::vector<float> distrControl::current_lagrange_multipliers;
 std::vector<float> distrControl::calculated_d_vector;
-float distrControl::lower_bound_occupied = 0;
-float distrControl::lower_bound_unoccupied = 0;
-float distrControl::current_lower_bound = 0;
-float distrControl::cost = 0;
-float distrControl::optimization_rho = 0;
-  
 
-
-
+float distrControl::lower_bound_occupied = 20;
+float distrControl::lower_bound_unoccupied = 10;
 bool distrControl::endGAINS_bool = false;
 float distrControl::tolerance=0.001;
 float distrControl::optimization_rho= 0.07;
@@ -86,8 +83,6 @@ void distrControl::setUpGains(){
         CanManager::canBUS_to_actions_rotine(executeAction);
 
     }
-    
-    }        
     
     Serial.println("End of setUP gains");
     
@@ -196,9 +191,9 @@ void distrControl::computeGlobalMinInside() {
 //formulas taken from lecture notes section 5.1 
   for(int i = 0; i < my()->nr_ckechIn_Nodes; i++) {
     if(i == my()->THIS_NODE_NR ) {
-      calculated_d_vector[i] = d_average[i] - ( (1/this->optimization_rho) * ( current_lagrange_multipliers[i] + this->cost ) );
+      calculated_d_vector[i] = d_average[i] - ( (1/optimization_rho) * ( current_lagrange_multipliers[i] + cost ) );
     } else {
-      calculated_d_vector[i] = d_average[i] - ( (1/this->optimization_rho) * current_lagrange_multipliers[i] );
+      calculated_d_vector[i] = d_average[i] - ( (1/optimization_rho) * current_lagrange_multipliers[i] );
     }
   }
 }
@@ -206,22 +201,22 @@ void distrControl::computeGlobalMinInside() {
 
 void distrControl::computeBoundarySolutions() {
 
-  std::vector<float> distrControl::vector_ILB(my()->nr_ckechIn_Nodes, 0f);
-  std::vector<float> distrControl::vector_DLB(my()->nr_ckechIn_Nodes, 0f);
-  std::vector<float> distrControl::vector_DUB(my()->nr_ckechIn_Nodes, 0f);
-  std::vector<float> distrControl::vector_ILBintersectDLB(my()->nr_ckechIn_Nodes, 0f);
-  std::vector<float> distrControl::vector_ILBintersectDUB(my()->nr_ckechIn_Nodes, 0f);
+  std::vector<float> vector_ILB(my()->nr_ckechIn_Nodes, 0.0f);
+  std::vector<float> vector_DLB(my()->nr_ckechIn_Nodes, 0.0f);
+  std::vector<float> vector_DUB(my()->nr_ckechIn_Nodes, 0.0f);
+  std::vector<float> vector_ILBintersectDLB(my()->nr_ckechIn_Nodes, 0.0f);
+  std::vector<float> vector_ILBintersectDUB(my()->nr_ckechIn_Nodes, 0.0f);
  
-  std::vector<float> distrControl::Y(my()->nr_ckechIn_Nodes, 0f);
+  std::vector<float> Y(my()->nr_ckechIn_Nodes, 0.0f);
 
   float Kgains_Y = 0;
   
   //from page 14 of lecture notes on consensus algorithm
   for(int i=0; i<my()->nr_ckechIn_Nodes; i++ ) {
     if(i == my()->THIS_NODE_NR) {
-      Y[i] = this->optimization_rho * d_average[my()->THIS_NODE_NR] - this->cost - lagrange_multipliers[my()->THIS_NODE_NR];
+      Y[i] =  optimization_rho * d_average[my()->THIS_NODE_NR] -  cost - current_lagrange_multipliers[my()->THIS_NODE_NR];
     } else {
-      Y[i] = this->optimization_rho * d_average[i] - lagrange_multipliers[i];
+      Y[i] =  optimization_rho * d_average[i] - current_lagrange_multipliers[i];
     }
 
     Kgains_Y += Y[i]*distrControl::gainsVector[i];
@@ -232,9 +227,9 @@ void distrControl::computeBoundarySolutions() {
     float aux;
     float squared_gains_norm=pow(std::sqrt( std::inner_product(distrControl::gainsVector.begin(), distrControl::gainsVector.end(), distrControl::gainsVector.begin(), 0.0f)), 2);
     for(int i = 0; i < my()->nr_ckechIn_Nodes; i++) {
-        aux= my()->o_lux - this->current_lower_bound + (1/this->optimization_rho )*Kgains_Y;
+        aux= my()->o_lux -  current_lower_bound + (1/ optimization_rho )*Kgains_Y;
         
-        vector_ILB[i] = (1/this->optimization_rho )*Y[i] - ((distrControl::gainsVector[i] * aux) / squared_gains_norm);
+        vector_ILB[i] = (1/ optimization_rho )*Y[i] - ((distrControl::gainsVector[i] * aux) / squared_gains_norm);
         
     }
   
@@ -244,7 +239,7 @@ void distrControl::computeBoundarySolutions() {
             vector_DLB[i] = 0;
         }
         else{
-            vector_DLB[i] = (1/this->optimization_rho ) * Y[i];
+            vector_DLB[i] = (1/ optimization_rho ) * Y[i];
         }
     }
     //solution for S3: from page 21 of lecture notes - DUB
@@ -253,10 +248,10 @@ void distrControl::computeBoundarySolutions() {
             vector_DUB[i] = 100;
         }
         else{
-            vector_DUB[i] = (1/this->optimization_rho ) * Y[i];
+            vector_DUB[i] = (1/ optimization_rho ) * Y[i];
         }
     }
-    std::vector<float> auxiliar_vector(my()->nr_ckechIn_Nodes, 0f);
+    std::vector<float> auxiliar_vector(my()->nr_ckechIn_Nodes, 0.0f);
 
     for(int i = 0; i < my()->nr_ckechIn_Nodes; i++) {
         auxiliar_vector[i] = ( distrControl::gainsVector[i] / ( squared_gains_norm - pow(distrControl::gainsVector[my()->THIS_NODE_NR], 2) ));
@@ -268,7 +263,8 @@ void distrControl::computeBoundarySolutions() {
             vector_ILBintersectDLB[i] = 0;
         }
         else{
-            vector_ILBintersectDLB[i] = 
+            aux= ( my()-> o_lux -  current_lower_bound - (1/ optimization_rho )*( distrControl::gainsVector[my()->THIS_NODE_NR]*Y[my()->THIS_NODE_NR] - Kgains_Y ) );
+            vector_ILBintersectDLB[i] = (1/ optimization_rho )*Y[i] -  ( auxiliar_vector[i] * aux );
         }
     }
     //solution for S5: from page 22 of lecture notes - ILB & DUB    
@@ -277,52 +273,33 @@ void distrControl::computeBoundarySolutions() {
             vector_ILBintersectDUB[i] = 100;
         }
         else{
-            aux =  my()->o_lux - this->current_lower_bound + 100*distrControl::gainsVector[my()->THIS_NODE_NR] - (1/this->optimization_rho )*(distrControl::gainsVector[my()->THIS_NODE_NR]*Y[my()->THIS_NODE_NR] - Kgains_Y) ;
-            vector_ILBintersectDUB[i] = (1/this->optimization_rho ) * Y[i]  - ( auxiliar_vector[i] * aux );
+            aux =  my()->o_lux -  current_lower_bound + 100*distrControl::gainsVector[my()->THIS_NODE_NR] - (1/ optimization_rho )*(distrControl::gainsVector[my()->THIS_NODE_NR]*Y[my()->THIS_NODE_NR] - Kgains_Y) ;
+            vector_ILBintersectDUB[i] = (1/ optimization_rho ) * Y[i]  - ( auxiliar_vector[i] * aux );
         }
-
-
-
-  
-
-    //ILB:
-    if(i == my()->THIS_NODE_NR) {
-      vector_DLB[i] = 0;
-      vector_DUB[i] = 100;
-      vector_ILBintersectDLB[i] = 0;
-      vector_ILBintersectDUB[i] = 100;
-    } else {
-      vector_DUB[i] = (1/this->optimization_rho ) * zed[i];
-      vector_ILBintersectDLB[i] = (1/this->optimization_rho )*zed[i] - 
-        ( norm_in_fraction * ( my()->o_lux - this->current_lower_bound - (1/this->optimization_rho )*( distrControl::gainsVector[my()->THIS_NODE_NR]*Y[my()->THIS_NODE_NR] - Kgains_Y ) ) );
-
-      vector_ILBintersectDUB[i] = (1/this->optimization_rho ) * zed[i] - ( norm_in_fraction * ( my()->o_lux - this->current_lower_bound + 100*distrControl::gainsVector[my()->THIS_NODE_NR] + (1/this->optimization_rho )*(distrControl::gainsVector[my()->THIS_NODE_NR]*Y[my()->THIS_NODE_NR] - Kgains_Y) ) );
-    }
   }
 
-    
-  float bestCost = 10000; 
-  std::vector<float> bestVector;  
+  //Now we will check which is the solution that gives the best cost and is feasible
+  float bestCost = 10000;
 
-  if( FeasibilityCheck(vector_ILB) and (computeCost(vector_ILB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_ILB) && (computeCost(vector_ILB) < bestCost) ) {
     bestCost = computeCost(vector_ILB);
-    bestVector = vector_ILB;
+    calculated_d_vector = vector_ILB;
   }
-  if( FeasibilityCheck(vector_DLB) and (computeCost(vector_DLB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_DLB) && (computeCost(vector_DLB) < bestCost) ) {
     bestCost = computeCost(vector_DLB);
-    bestVector = vector_DLB;
+    calculated_d_vector = vector_DLB;
   }
-  if( FeasibilityCheck(vector_DUB) and (computeCost(vector_DUB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_DUB) && (computeCost(vector_DUB) < bestCost) ) {
     bestCost = computeCost(vector_DUB);
-    bestVector = vector_DUB;
+    calculated_d_vector = vector_DUB;
   }
-  if( FeasibilityCheck(vector_ILBintersectDLB) and (computeCost(vector_ILBintersectDLB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_ILBintersectDLB) && (computeCost(vector_ILBintersectDLB) < bestCost) ) {
     bestCost = computeCost(vector_ILBintersectDLB);
-    bestVector = vector_ILBintersectDLB;
+    calculated_d_vector = vector_ILBintersectDLB;
   }
-  if( FeasibilityCheck(vector_ILBintersectDUB) and (computeCost(vector_ILBintersectDUB, my()->THIS_NODE_NR) < bestCost) ) {
+  if( FeasibilityCheck(vector_ILBintersectDUB) && (computeCost(vector_ILBintersectDUB) < bestCost) ) {
     bestCost = computeCost(vector_ILBintersectDUB);
-    bestVector = vector_ILBintersectDUB;
+    calculated_d_vector = vector_ILBintersectDUB;
   }
   if(bestCost == 1000000) {// if no solution was meet, then assume the last solution
     for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) {
@@ -336,11 +313,30 @@ void distrControl::computeBoundarySolutions() {
     }
   }
   
+  
+}
+
+void distrControl::computeLagrangeMultipliers(){
+for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) {
+    current_lagrange_multipliers[i] += optimization_rho * ( calculated_d_vector[i] - d_average[i] );
+  }
 }
 
 
 
-float Consensus::computeCost(const std::vector<float>& d_to_compute) {
+
+
+void distrControl::calculateAverage() {
+  for(int i=0; i< my()->nr_ckechIn_Nodes; i++) {
+    d_average[i] = 0;
+    for(int j=0; j< my()->nr_ckechIn_Nodes; j++){
+      d_average[i] += all_d[j][i];
+    }
+    d_average[i] = d_average[i] / my()->nr_ckechIn_Nodes;
+  }
+}
+
+float distrControl::computeCost(const std::vector<float>& d_to_compute) {
   //formula taken from section 3.1 "The ADDM algorithm" of DRTCS lecture notes
   
     float computedCost = 0;
@@ -353,46 +349,34 @@ float Consensus::computeCost(const std::vector<float>& d_to_compute) {
     //compute norm
     float norm_d_minus_d = std::sqrt( std::inner_product(d_minus_dAVG.begin(), d_minus_dAVG.end(), d_minus_dAVG.begin(), 0.0f));
     computedCost += 0.5 * (pow(norm_d_minus_d, 2));
-    computedCost += this->cost * vector_dimming[my()->THIS_NODE_NR] + this->current_lagrange_multipliers[my()->THIS_NODE_NR] * d_minus_dAVG[my()->THIS_NODE_NR];
+    computedCost +=  cost * calculated_d_vector[my()->THIS_NODE_NR] +  current_lagrange_multipliers[my()->THIS_NODE_NR] * d_minus_dAVG[my()->THIS_NODE_NR];
     
     return computedCost;
 }
 
-
-
-
-
-void Consensus::calculateAverage() {
-  for(int i=0; i< my()->nr_ckechIn_Nodes; i++) {
-    d_average[i] = 0;
-    for(int j=0; j< my()->nr_ckechIn_Nodes; j++){
-      d_average[i] += all_d[j][i];
-    }
-    d_average[i] = d_average[i] / my()->nr_ckechIn_Nodes;
-  }
-}
-
-bool Consensus::FeasibilityCheck( const std::vector<float>& d_to_check){    
+bool distrControl::FeasibilityCheck( const std::vector<float>& d_to_check){    
     float total_lux = 0;
 
     for(int i = 0; i < my()->nr_ckechIn_Nodes; i++) {
-        if(d_to_check[i] < 0 - this->tolerance) {
+        if(d_to_check[i] < 0 -  tolerance) {
             return false;
         }
-        if(d_to_check[i] > 100 + this->tolerance) {
+        if(d_to_check[i] > 100 +  tolerance) {
             return false;
         }
         total_lux +=  distrControl::gainsVector[i] * d_to_check[i];
     }
     
-    if( total_lux < (this->current_lower_bound - my()->o_lux - this->tolerance) ) {
+    if( total_lux < ( current_lower_bound - my()->o_lux -  tolerance) ) {
         return false;
     }
     return true;
 }
 
 
- */
+ void distrControl::updateD_values(const std::vector<float>& d_to_update, int node){
+    all_d[node]=d_to_update;
+ }
 
 
 void distrControl::set_occupancy(bool new_occupancy) {
@@ -424,10 +408,16 @@ float distrControl::get_lower_bound_unoccupied() {
 
 
 void distrControl::set_lower_bound() {
+  float previous_lower_bound =  current_lower_bound;
   if (my()->occupancy)
     current_lower_bound = lower_bound_occupied;
   else
     current_lower_bound = lower_bound_unoccupied;
+
+  if (previous_lower_bound !=  current_lower_bound){
+    //begin the consensus
+    begin_consensus();
+  }
 }
 
 float distrControl::get_lower_bound() {
@@ -435,7 +425,11 @@ float distrControl::get_lower_bound() {
     }
 
 void distrControl::set_cost(float new_cost) {
-    cost = new_cost;
+    if (cost != new_cost){
+      cost = new_cost;
+      begin_consensus();
+    }
+    
     }
 
 float distrControl::get_cost() {

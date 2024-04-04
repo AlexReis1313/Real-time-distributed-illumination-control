@@ -5,7 +5,7 @@
 
 class pid {
     private:
-      float I, D, K, Ti, Tt, Td, b, h, y_old, N, b_old, Kold;
+      float I, D, K, Ti, Tt, Td, b, h, y_old, N, b_old, Kold, uff;
       float P, u, error, ao, duty_cycle, dutycycle_time;
       bool  feedback, antiwindup;
       
@@ -26,7 +26,8 @@ class pid {
       void setDutyCycle(int duty_cycle, float time);
       float getDutyCycle();
       float getLastVss();
-     
+      void setUffConsensus(float _uff);
+
 };
 
 // inline means that it is expanded in code instead of 
