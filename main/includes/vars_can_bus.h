@@ -96,6 +96,7 @@ enum my_type : uint8_t //needs to 8 bits
 
   FOUND_HUB,
   //consensus
+  //ENDCONSENSUS,
   ACKCONSENSUS,
   RECEIVECONSENSUS0,
   RECEIVECONSENSUS1,

@@ -129,4 +129,7 @@ class CanManager {
         static void ReceiveConsensusAction(int i,int node, float value);
         static void ACKBeginConsensusAction(info_msg &msg);
         static void ChangeIterAction(info_msg &msg);
+       // static void ENDConsensusAction(info_msg &msg);
+    
+
 };

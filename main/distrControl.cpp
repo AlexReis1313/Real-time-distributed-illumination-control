@@ -19,13 +19,13 @@ std::vector<float> distrControl::current_lagrange_multipliers;
 std::vector<float> distrControl::calculated_d_vector;
 std::vector<float> distrControl::oldDimingvector;
 
-float distrControl::lower_bound_occupied = 20;
-float distrControl::lower_bound_unoccupied = 10;
+float distrControl::lower_bound_occupied = 30;
+float distrControl::lower_bound_unoccupied = 20;
 bool distrControl::endGAINS_bool = false;
-float distrControl::tolerance=0.001;
-float distrControl::optimization_rho= 0.2;
+float distrControl::tolerance=0.05;
+float distrControl::optimization_rho= 0.001;
 float distrControl::cost=1;
-float distrControl::current_lower_bound=10;
+float distrControl::current_lower_bound=20;
 int distrControl::sending_vector_entry = 0;
 int distrControl::checkValue=-10001;
 
@@ -62,7 +62,7 @@ void distrControl::setUpGains(){
         analogWrite(my()->LED_PIN, 4000); //Apply control signal to LED
         unsigned char data[sizeof(int)];
         memcpy(data, &my()->THIS_NODE_NR, sizeof(int));
-        Serial.println("Starting to MeasureLights ");
+        //Serial.println("Starting to MeasureLights ");
         CanManager::loopUntilACK(my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::MEASURE_LIGHTS, data ,sizeof(data) );
         vss = get_adc_digital_filter(40, 10) * 3.3 / 4095; // Convert ADC (analog to digital converter) to volts
         float x_lux = Volt2LUX(vss); //Get LDR value in lux
@@ -75,7 +75,7 @@ void distrControl::setUpGains(){
         int next_node_nr=my()->THIS_NODE_NR + 1;
         memcpy(data, &next_node_nr, sizeof(int));
         //this informs pico 1 that he should light up. From now on, pico 1 will be in charge
-        Serial.print("Passing master token to next node. To node: "); Serial.println(next_node_nr);
+        //Serial.print("Passing master token to next node. To node: "); Serial.println(next_node_nr);
         CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NOTIFY_FUTURE_LIGHT, data ,sizeof(data) );
         
     } 
@@ -89,7 +89,7 @@ void distrControl::setUpGains(){
 
     }
     my()->gain = gainsVector[my()->THIS_NODE_NR];
-    Serial.println("End of setUP gains");
+    //Serial.println("End of setUP gains");
     
 
 }
@@ -99,7 +99,8 @@ void distrControl::initializeNewConsensus(){
   Serial.println("Initializing new consensus");
   my()->consensus_ongoing = true;
   sending_vector_entry = 0;
-  
+  my()->consensus_iteration = 0;
+
   for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) {
       current_lagrange_multipliers[i] = 0;
       for(int j = 0; j < my()->nr_ckechIn_Nodes ; j++) {
@@ -109,25 +110,32 @@ void distrControl::initializeNewConsensus(){
 }
 
 void distrControl::begin_consensus(){ 
-    Serial.println("Sending begin msg consensus");
+    //Serial.println("Sending begin msg consensus");
     my()->sendingConsensus_begin = true;
     my()->list_Ack.clear();
     CanManager::enqueue_message(PICO_ID, my_type::BEGINCONSENSUS, nullptr, 0);
+    my()->consensus_iteration = 0;
 }
 
 
 void distrControl::ComputeConsensus() {
-  Serial.println("Computing consensus");
+  //Serial.println("Computing consensus");
 
   calculateAverage();
+  /* Serial.print("average is: ");
+  for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+            Serial.print(d_average[i],4); // Print current element
+            Serial.print(", "); // Print comma unless it's the last element
+            }
+  Serial.println(); */
+
   computeLagrangeMultipliers();
   oldDimingvector = calculated_d_vector;
   calculated_d_vector.clear();
   computeGlobalMinInside(); //calculated_d_vector
 
   if(!FeasibilityCheck(calculated_d_vector)) {
-    Serial.println("Searching for solution in boundary");
-
+    //Serial.println("Searching for solution in boundary");
     calculated_d_vector.clear();
     computeBoundarySolutions(); //calculated_d_vector
   }
@@ -145,30 +153,30 @@ void distrControl::ComputeConsensus() {
   }
   
   all_d[my()->THIS_NODE_NR] = calculated_d_vector;
-  Serial.print("Computed vector is: ");
-    for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
-            Serial.print(calculated_d_vector[i],4); // Print current element
-            Serial.print(", "); // Print comma unless it's the last element
-      }
-      Serial.println();
-  Serial.print("list_Nr_detected_consensus is : ");
-    for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
-            Serial.print(my()->list_Nr_detected_consensus[i],4); // Print current element
-            Serial.print(", "); // Print comma unless it's the last element
-      }
-      Serial.println();
-  Serial.print("list_consesus_received_vector is : ");
-    for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
-            Serial.print(my()->list_consesus_received_vector[i],4); // Print current element
-            Serial.print(", "); // Print comma unless it's the last element
-      }
-      Serial.println();
-  Serial.print("all_d line is : ");
-    for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
-            Serial.print(all_d[0][i],4); // Print current element
-            Serial.print(", "); // Print comma unless it's the last element
-      }
-      Serial.println();
+  // Serial.print("Computed vector is: ");
+  //   for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+  //           Serial.print(calculated_d_vector[i],4); // Print current element
+  //           Serial.print(", "); // Print comma unless it's the last element
+  //     }
+  //     Serial.println();
+  // Serial.print("list_Nr_detected_consensus is : ");
+  //   for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+  //           Serial.print(my()->list_Nr_detected_consensus[i],4); // Print current element
+  //           Serial.print(", "); // Print comma unless it's the last element
+  //     }
+  //     Serial.println();
+  // Serial.print("list_consesus_received_vector is : ");
+  //   for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+  //           Serial.print(my()->list_consesus_received_vector[i],4); // Print current element
+  //           Serial.print(", "); // Print comma unless it's the last element
+  //     }
+  //     Serial.println();
+  // Serial.print("all_d line is : ");
+  //   for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+  //           Serial.print(all_d[0][i],4); // Print current element
+  //           Serial.print(", "); // Print comma unless it's the last element
+  //     }
+  //     Serial.println();
   }  
 
 void distrControl::sendConsensus(){
@@ -220,6 +228,12 @@ void distrControl::computeGlobalMinInside() {
       calculated_d_vector[i] = d_average[i] - ( (1/optimization_rho) * current_lagrange_multipliers[i] );
     }
   }
+ /*  Serial.print("Solution global no boundary is: ");
+  for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+            Serial.print(calculated_d_vector[i],4); // Print current element
+            Serial.print(", "); // Print comma unless it's the last element
+            }
+  Serial.println(); */
 }
 
 
@@ -327,11 +341,11 @@ void distrControl::computeBoundarySolutions() {
   }
   if(bestCost == 1000000) {// if no solution was meet, then assume the last solution
     for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) {
-      if( all_d[my()->THIS_NODE_NR][i] ==-10001){
+      if( oldDimingvector[i] ==-10001){
       calculated_d_vector[i] =0;
       }
       else{
-      calculated_d_vector[i] = oldDimingvector;
+      calculated_d_vector[i] = oldDimingvector[i];
       }
       
     }
@@ -354,7 +368,13 @@ void distrControl::calculateAverage() {
   for(int i=0; i< my()->nr_ckechIn_Nodes; i++) {
     d_average[i] = 0;
     for(int j=0; j< my()->nr_ckechIn_Nodes; j++){
-      d_average[i] += all_d[j][i];
+      if (all_d[j][i]==checkValue){
+        d_average[i] += 0;
+      }
+      else{
+        d_average[i] += all_d[j][i];
+      }
+      
     }
     d_average[i] = d_average[i] / my()->nr_ckechIn_Nodes;
   }
@@ -370,10 +390,12 @@ float distrControl::computeCost(const std::vector<float>& d_to_compute) {
         d_minus_dAVG[i] = d_to_compute[i] - distrControl::d_average[i];
         computedCost += distrControl::current_lagrange_multipliers[i] *d_minus_dAVG[i];
     }
+
+
     //compute norm
     float norm_d_minus_d = std::sqrt( std::inner_product(d_minus_dAVG.begin(), d_minus_dAVG.end(), d_minus_dAVG.begin(), 0.0f));
-    computedCost += 0.5 * (pow(norm_d_minus_d, 2));
-    computedCost +=  cost * calculated_d_vector[my()->THIS_NODE_NR] +  current_lagrange_multipliers[my()->THIS_NODE_NR] * d_minus_dAVG[my()->THIS_NODE_NR];
+    computedCost += optimization_rho *0.5 * (pow(norm_d_minus_d, 2));
+    computedCost +=  cost * calculated_d_vector[my()->THIS_NODE_NR];
     
     return computedCost;
 }
@@ -385,7 +407,7 @@ bool distrControl::FeasibilityCheck( const std::vector<float>& d_to_check){
         if(d_to_check[i] < 0 -  tolerance) {
             return false;
         }
-        if(d_to_check[i] > 100 +  tolerance) {
+        if(d_to_check[i] > 4095 +  tolerance) {
             return false;
         }
         total_lux +=  distrControl::gainsVector[i] * d_to_check[i];

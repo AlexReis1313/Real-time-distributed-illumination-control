@@ -26,7 +26,6 @@ class pid {
       void setDutyCycle(int duty_cycle, float time);
       float getDutyCycle();
       float getLastVss();
-      void setUffConsensus(float _uff);
 
 };
 

@@ -268,8 +268,8 @@ void CanManager::wake_up_grid() {
 
     }   
     CanManager::enqueue_message(PICO_ID, my_type::WAKE_UP, data, sizeof(data));
-    Serial.println("Finished wake_up");
-    Serial.print("Nr of found nodes ");Serial.print(my()->nr_ckechIn_Nodes);Serial.print(" Nr id of my pico ");Serial.println((int)PICO_ID);
+    //Serial.println("Finished wake_up");
+    Serial.print("Nr of found nodes ");Serial.println(my()->nr_ckechIn_Nodes);//Serial.print(" Nr id of my pico ");Serial.println((int)PICO_ID);
 
     std::vector<int> int_vector;
 

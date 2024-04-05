@@ -38,10 +38,7 @@ void pid::setFeedback(bool value) {
     this->feedback = value;
 }
 
-void pid::setuffConsensus(float _uff){
-     
-    this-> r = _uff* my()->gain ;
-}
+
 
 void pid::setAntiWindup(bool value) {
     this->antiwindup = value;

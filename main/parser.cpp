@@ -83,7 +83,8 @@ void Parser::parseCommand(const String& command) {
             if (sscanf(command.c_str(), "o %d %f", &i, &val) == 2){
                 unsigned char i_char = static_cast<unsigned char>(i);
                 if (i_char == HUB) {
-                    my()->occupancy = (bool)val;
+                    
+                    distrControl::set_occupancy((bool)val);
                     Serial.println("ack");
                 }
                 else {
@@ -413,7 +414,7 @@ void Parser::getters(char &item, int val) {
 void Parser::getBuffer(char x, int i) { //LAST_MINUTE_BUFFER
     //Serial.print("x: "); Serial.println(x);
     //Serial.print("i: "); Serial.println(i);
-    int id = my()->id_to_node[i];
+    int id = my()->node_to_id[i];
     if (x == 'l') {
         //Serial.println("entrei NO L ");
         my()->list_stream_last_minute_lux[my()->id_to_node[id]] = true;

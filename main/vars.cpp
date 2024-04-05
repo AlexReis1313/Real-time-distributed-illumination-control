@@ -21,7 +21,7 @@ void vars_setup(void){
     my()->tau = 0.19/10; //0.13 / 100
     my()->Tt = 1; //0.05;
     //get_gain(3000);
-    my()->gain = 0.01 //this will be changed after calculating gains for all nodes - it is just an initialization
+    my()->gain = 0.01; //this will be changed after calculating gains for all nodes - it is just an initialization
     get_H_xref();
     get_H_x();
     my()->b_controller = 1;
@@ -64,12 +64,13 @@ void vars_setup(void){
 
 
     //initialize consensus
+    my()->exit_consensus_bool = false;
     my()->wait_change_iter = false;
     my()->last_consensus_time=millis();
     my()->first_loop = 100;
     my()->sendingConsensus_begin = false;
     my()->consensus_iteration = 0;
-    my()->consensus_maxIterations = 20;
+    my()->consensus_maxIterations = 60;
     my()->consensus_ongoing = false;
     //my()->send_consensus = false;
     my()->list_Nr_detected_consensus.clear(); //contins how many consensus the others have receive. When all have received nr_ckechIn_Nodes - 1, then move to next iter

@@ -101,10 +101,18 @@ void CanManager::createMap(void) {
     _actionMap[my_type::BEGINCONSENSUS] = BeginConsensusAction;
     _actionMap[my_type::ACKBEGINCONSENSUS] = ACKBeginConsensusAction;
     _actionMap[my_type::CHANGEITER] = ChangeIterAction;
+    //_actionMap[my_type::ENDCONSENSUS] = ENDConsensusAction;
+ 
     
 }
 
+/* void  CanManager::ENDConsensusAction(info_msg &msg){
+    my()->exit_consensus_bool = true;
+    char type = 'c';
+    CanManager::acknoledge(type, msg.sender);
 
+}
+ */
 
 void CanManager::BeginConsensusAction(info_msg &msg){
     if (my()->consensus_ongoing == false){
@@ -115,7 +123,7 @@ void CanManager::BeginConsensusAction(info_msg &msg){
 }
 
 void CanManager::ChangeIterAction(info_msg &msg){
-    Serial.println("New consensus iteration - from action");
+    //Serial.println("New consensus iteration - from action");
     int data_as_int;
     memcpy(&data_as_int, msg.data, sizeof(int));
     my()->consensus_iteration = data_as_int;
@@ -134,7 +142,7 @@ void CanManager::ACKConsensusAction(info_msg &msg){
         memcpy(&data_as_int, msg.data, sizeof(int));
         int node = my()->id_to_node[msg.sender];
         my()->list_Nr_detected_consensus[node] = data_as_int; //i-1 because list_IDS has 3 entries (myself and 2 others) and my()->list_Nr_detected_IDS has only the 2 others
-        Serial.print("I known that node: "); Serial.print(node);Serial.print(" has received info from ");Serial.println(data_as_int);
+        //Serial.print("I known that node: "); Serial.print(node);Serial.print(" has received info from ");Serial.println(data_as_int);
 }
 }
 
@@ -143,7 +151,7 @@ void CanManager::ACKConsensusAction(info_msg &msg){
 
 
 void CanManager::ReceiveConsensusAction(int i,int node, float value){
-    Serial.print("ReceiveConsensusAction from ");Serial.print(node);Serial.print(" about vector entry ");Serial.print(i);Serial.print(" with value ");Serial.println(value);
+    //Serial.print("ReceiveConsensusAction from ");Serial.print(node);Serial.print(" about vector entry ");Serial.print(i);Serial.print(" with value ");Serial.println(value);
     
     bool bool1 = my()->list_consesus_received_vector[node]<3;
     bool bool2 = distrControl::all_d[node][i]==distrControl::checkValue;
@@ -200,7 +208,7 @@ void CanManager::ACKBeginConsensusAction(info_msg &msg) {
     
     if (value == PICO_ID){
         if (find(my()->list_Ack.begin(), my()->list_Ack.end(), msg.sender) == my()->list_Ack.end()){// is there this id in the list?
-            Serial.print("Received ack from ");Serial.println(msg.sender);
+            //Serial.print("Received ack from ");Serial.println(msg.sender);
             my()->list_Ack.push_back(msg.sender);
          
 
@@ -217,7 +225,7 @@ void CanManager::ackInternalAction(info_msg &msg) {
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID){
         if (find(my()->list_Ack_loopUntilACK.begin(), my()->list_Ack_loopUntilACK.end(), msg.sender) ==my()->list_Ack_loopUntilACK.end()){// is there this id in the list?
-            Serial.print("Received ack from ");Serial.println(msg.sender);
+            //Serial.print("Received ack from ");Serial.println(msg.sender);
             my()->list_Ack_loopUntilACK.push_back(msg.sender);
          
 
@@ -259,7 +267,7 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
     int data_as_int;
     memcpy(&data_as_int, msg.data, sizeof(int));
     if (data_as_int == my()->THIS_NODE_NR ){
-        Serial.println("I am now in charge of setup");
+        //Serial.println("I am now in charge of setup");
 
         char type = 'i';
         CanManager::acknoledge(type, msg.sender); //inform previous node that this node has taken over
@@ -275,7 +283,7 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
 
         analogWrite(my()->LED_PIN, 0);
         if(my()->THIS_NODE_NR==my()->nr_ckechIn_Nodes - 1){//I am the last node
-            Serial.println("I was the last node - ending gains");
+            //Serial.println("I was the last node - ending gains");
             CanManager::loopUntilACK( my()->nr_ckechIn_Nodes-1 , CanManager::PICO_ID, my_type::ENDGAINS, nullptr ,0 );
             distrControl::endGAINS_bool = true;
             
@@ -285,7 +293,7 @@ void CanManager::NotifyThisLightAction(info_msg &msg) {
             unsigned char data[sizeof(int)];
             int next_node_nr = my()->THIS_NODE_NR + 1;
             memcpy(data, &next_node_nr, sizeof(int));
-            Serial.print("Passing master token to next node. To node: "); Serial.println(next_node_nr);            
+            //Serial.print("Passing master token to next node. To node: "); Serial.println(next_node_nr);            
             //this informs pico 1 that he should light up. From now on, pico 1 will be in charge
             CanManager::loopUntilACK(1 , CanManager::PICO_ID, my_type::NOTIFY_FUTURE_LIGHT, data ,sizeof(data) );
     
@@ -345,7 +353,7 @@ void CanManager::setOccupancyAction(info_msg &msg) {
     memcpy(&value, msg.data, sizeof(float));
     if (msg.can_id == PICO_ID) {
         //Serial.println("ACTION::Set Occupancy Action received");
-        my()->occupancy = (bool)value;
+        distrControl::set_occupancy((bool)value);
         Serial.println("ack");
         //Serial.print("New occupancy set: "); Serial.println((bool)value);
         //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
@@ -634,7 +642,7 @@ void CanManager::serialGetAverageFlickerAction(info_msg &msg) {
 
 // HUB
 void CanManager::foundHubAction(info_msg &msg) {
-    Serial.println("ACTION::Found Hub Action received");
+    //Serial.println("ACTION::Found Hub Action received");
     HUB = msg.sender;
     CanManager::hubFound = true;
 }
@@ -647,7 +655,7 @@ void CanManager::WakeUpAction(info_msg &msg) {
     memcpy(&data_as_int, msg.data, sizeof(int));
     if (find(my()->list_IDS.begin(), my()->list_IDS.end(), msg.sender) == my()->list_IDS.end()) {
         // Add the sender to the list of IDs
-        Serial.println("I have found a new node");
+       // Serial.println("I have found a new node");
 
         my()->list_IDS.push_back(msg.sender);
         
