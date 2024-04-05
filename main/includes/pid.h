@@ -5,7 +5,7 @@
 
 class pid {
     private:
-      float I, D, K, Ti, Tt, Td, b, h, y_old, N, b_old, Kold, uff;
+      float I, D, K, Ti, Tt, Td, b, h, y_old, N, b_old, Kold;
       float P, u, error, ao, duty_cycle, dutycycle_time;
       bool  feedback, antiwindup;
       

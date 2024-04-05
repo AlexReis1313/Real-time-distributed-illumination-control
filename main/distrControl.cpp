@@ -17,15 +17,17 @@ std::vector<std::vector<float>> distrControl::all_d; // Initialized to 0
 std::vector<float> distrControl::d_average;
 std::vector<float> distrControl::current_lagrange_multipliers;
 std::vector<float> distrControl::calculated_d_vector;
+std::vector<float> distrControl::oldDimingvector;
 
 float distrControl::lower_bound_occupied = 20;
 float distrControl::lower_bound_unoccupied = 10;
 bool distrControl::endGAINS_bool = false;
 float distrControl::tolerance=0.001;
-float distrControl::optimization_rho= 0.07;
+float distrControl::optimization_rho= 0.2;
 float distrControl::cost=1;
 float distrControl::current_lower_bound=10;
 int distrControl::sending_vector_entry = 0;
+int distrControl::checkValue=-10001;
 
 void distrControl::setUpGains(){
     gainsVector = std::vector<float>(my()->nr_ckechIn_Nodes);
@@ -33,15 +35,18 @@ void distrControl::setUpGains(){
     current_lagrange_multipliers = std::vector<float>(my()->nr_ckechIn_Nodes);
     calculated_d_vector = std::vector<float>(my()->nr_ckechIn_Nodes);
     all_d = std::vector<std::vector<float>>(my()->nr_ckechIn_Nodes, std::vector<float>(my()->nr_ckechIn_Nodes));
+    oldDimingvector = std::vector<float>(my()->nr_ckechIn_Nodes);
+
 
     my()->list_Nr_detected_consensus=  std::vector<int>(my()->nr_ckechIn_Nodes);
     my()->list_consesus_received_vector =  std::vector<int>(my()->nr_ckechIn_Nodes);
-    //my()->list_Nr_detected_consensus.clear(); 
-    //my()->list_consesus_received_vector.clear();
+    my()->list_Nr_detected_consensus.clear(); 
+    my()->list_consesus_received_vector.clear();
 
-    // Initialize inner vectors separately
     for (int i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
-        all_d[i] = std::vector<float>(my()->nr_ckechIn_Nodes);
+        all_d[i] = std::vector<float>(my()->nr_ckechIn_Nodes);    // Initialize inner vectors separately
+
+        oldDimingvector[i]=0; //define null values to be used if no feasible computation is made
     }
 
     //gainsVector.resize(my()->nr_ckechIn_Nodes + 1);
@@ -83,7 +88,7 @@ void distrControl::setUpGains(){
         CanManager::canBUS_to_actions_rotine(executeAction);
 
     }
-    
+    my()->gain = gainsVector[my()->THIS_NODE_NR];
     Serial.println("End of setUP gains");
     
 
@@ -94,7 +99,7 @@ void distrControl::initializeNewConsensus(){
   Serial.println("Initializing new consensus");
   my()->consensus_ongoing = true;
   sending_vector_entry = 0;
-  float checkValue=-101;
+  
   for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) {
       current_lagrange_multipliers[i] = 0;
       for(int j = 0; j < my()->nr_ckechIn_Nodes ; j++) {
@@ -116,7 +121,7 @@ void distrControl::ComputeConsensus() {
 
   calculateAverage();
   computeLagrangeMultipliers();
-
+  oldDimingvector = calculated_d_vector;
   calculated_d_vector.clear();
   computeGlobalMinInside(); //calculated_d_vector
 
@@ -127,21 +132,40 @@ void distrControl::ComputeConsensus() {
     computeBoundarySolutions(); //calculated_d_vector
   }
 
-  my()->list_Nr_detected_consensus.clear(); //no node has received complete vector from any other node
+  my()->list_Nr_detected_consensus.clear();  //no node has received complete vector from any other node
   my()->list_consesus_received_vector.clear(); //nr of entries that I have about each node
   my()->list_consesus_received_vector[my()->THIS_NODE_NR] = 3; //I know all my entries so far
 
-  float checkValue=-101;
   for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) { //
       for(int j = 0; j < my()->nr_ckechIn_Nodes ; j++) {
         all_d[i][j]=checkValue;
       }
+      my()->list_Nr_detected_consensus[i]=0;
+      my()->list_consesus_received_vector[i]=0;
   }
   
   all_d[my()->THIS_NODE_NR] = calculated_d_vector;
   Serial.print("Computed vector is: ");
     for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
             Serial.print(calculated_d_vector[i],4); // Print current element
+            Serial.print(", "); // Print comma unless it's the last element
+      }
+      Serial.println();
+  Serial.print("list_Nr_detected_consensus is : ");
+    for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+            Serial.print(my()->list_Nr_detected_consensus[i],4); // Print current element
+            Serial.print(", "); // Print comma unless it's the last element
+      }
+      Serial.println();
+  Serial.print("list_consesus_received_vector is : ");
+    for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+            Serial.print(my()->list_consesus_received_vector[i],4); // Print current element
+            Serial.print(", "); // Print comma unless it's the last element
+      }
+      Serial.println();
+  Serial.print("all_d line is : ");
+    for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
+            Serial.print(all_d[0][i],4); // Print current element
             Serial.print(", "); // Print comma unless it's the last element
       }
       Serial.println();
@@ -303,11 +327,11 @@ void distrControl::computeBoundarySolutions() {
   }
   if(bestCost == 1000000) {// if no solution was meet, then assume the last solution
     for(int i = 0; i < my()->nr_ckechIn_Nodes ; i++) {
-      if( all_d[my()->THIS_NODE_NR][i] ==-101){
+      if( all_d[my()->THIS_NODE_NR][i] ==-10001){
       calculated_d_vector[i] =0;
       }
       else{
-      calculated_d_vector[i] = all_d[my()->THIS_NODE_NR][i];
+      calculated_d_vector[i] = oldDimingvector;
       }
       
     }

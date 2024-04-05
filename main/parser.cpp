@@ -26,6 +26,7 @@ void Parser::parseCommand(const String& command) {
                 int i;
                 if (sscanf(command.c_str(), "g b %c %d", &x, &i) == 2) {
                     // Call a function to handle buffer retrieval
+                    
                     this->getBuffer(x, i);
                 } 
                 else {

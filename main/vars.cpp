@@ -20,7 +20,8 @@ void vars_setup(void){
     my()->k = 250; //300; 750/50
     my()->tau = 0.19/10; //0.13 / 100
     my()->Tt = 1; //0.05;
-    get_gain(3000);
+    //get_gain(3000);
+    my()->gain = 0.01 //this will be changed after calculating gains for all nodes - it is just an initialization
     get_H_xref();
     get_H_x();
     my()->b_controller = 1;

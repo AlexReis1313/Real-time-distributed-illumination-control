@@ -10,6 +10,7 @@ class distrControl {
         static std::vector<float> d_average;
         //static std::vector<float> all_d;
         static std::vector<float> current_lagrange_multipliers;
+        static std::vector<float> oldDimingvector;
         
 
     public:
@@ -19,6 +20,7 @@ class distrControl {
         static std::vector<float> gainsVector;
         static std::vector<float> calculated_d_vector;
         static std::vector<std::vector<float>> all_d;
+        static int checkValue;
 
         static void  setUpGains();
 

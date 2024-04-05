@@ -60,21 +60,21 @@ void get_gain(int value){ //value is a PWM of 3000
     float x; //voltage for 3000 PWM
     float gain;
 
-    // delay(1500);
-    // analogWrite(my()->LED_PIN, 0);
-    // delay(3000);
-    // o = analogRead(my()->LDR_port)*3.3/4095;
-    // my()->o_lux = Volt2LUX(o);
-    // analogWrite(my()->LED_PIN, value);
-    // delay(3000);
-    // x = analogRead(my()->LDR_port)*3.3/4095;
-    // x_lux = Volt2LUX(x);
-    // my()->gain = (x_lux - my()->o_lux) / value;
-    // Serial.print("Gain: "); Serial.println(my()->gain, 10);
-    // delay(1000);
+    delay(1500);
+    analogWrite(my()->LED_PIN, 0);
+    delay(3000);
+    o = analogRead(my()->LDR_port)*3.3/4095;
+    my()->o_lux = Volt2LUX(o);
+    analogWrite(my()->LED_PIN, value);
+    delay(3000);
+    x = analogRead(my()->LDR_port)*3.3/4095;
+    x_lux = Volt2LUX(x);
+    my()->gain = (x_lux - my()->o_lux) / value;
+    Serial.print("Gain: "); Serial.println(my()->gain, 10);
+    delay(1000);
 
 
-    my()->gain =0.01;
+    
 }
 
 //x_ref is in lux

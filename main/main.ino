@@ -94,6 +94,7 @@ void setup() {
     Serial.println("Going inside setupgains");
 
     distrControl::setUpGains();
+    
 
     Serial.print("Vector of gains is: ");
     for (size_t i = 0; i < my()->nr_ckechIn_Nodes; ++i) {
@@ -164,7 +165,7 @@ void Wait_to_sync(){
     }   
 }
 void consensus_rotine(){
-if(millis()-my()->last_consensus_time > my()->control_interval*10){
+if(millis()-my()->last_consensus_time > my()->control_interval/3){
     if (my()->consensus_ongoing){
              
         
@@ -175,17 +176,25 @@ if(millis()-my()->last_consensus_time > my()->control_interval*10){
                     count +=1;
                 }
             } 
-
+            if(count==3 && my()->THIS_NODE_NR==0){
+            Serial.println("Count info = 3");
+            }
+            
 
             int ackCount = 0;
             for (unsigned char ack : my()->list_Ack) {
                 ackCount++;
             }
-            if(count==3 && my()->THIS_NODE_NR==0 && !my()->wait_change_iter){
-                
-                my()->list_Ack.clear();
-                ackCount=0;
-                CanManager::enqueue_message(PICO_ID, my_type::CHANGEITER, nullptr, 0); 
+            if(count==3 && my()->THIS_NODE_NR==0 && (!my()->wait_change_iter || ackCount<2)){
+                Serial.println("Sending info to change iter");
+                if (!my()->wait_change_iter){
+                    my()->list_Ack.clear();
+                    ackCount=0;
+                }
+                unsigned char data[sizeof(float)];
+                int next_iter= my()->consensus_iteration +1;
+                memcpy(data, &next_iter, sizeof(next_iter));
+                CanManager::enqueue_message(PICO_ID, my_type::CHANGEITER, data, sizeof(data)); 
                 my()->wait_change_iter = true;
                 }
             

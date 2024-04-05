@@ -116,11 +116,14 @@ void CanManager::BeginConsensusAction(info_msg &msg){
 
 void CanManager::ChangeIterAction(info_msg &msg){
     Serial.println("New consensus iteration - from action");
-    my()->consensus_iteration +=1;
-    distrControl::ComputeConsensus(); 
+    int data_as_int;
+    memcpy(&data_as_int, msg.data, sizeof(int));
+    my()->consensus_iteration = data_as_int;
+     
     
     char type = 'c';
     CanManager::acknoledge(type, msg.sender);
+    distrControl::ComputeConsensus();
     my()->last_sent_consensus = millis();
 }
 
@@ -131,7 +134,7 @@ void CanManager::ACKConsensusAction(info_msg &msg){
         memcpy(&data_as_int, msg.data, sizeof(int));
         int node = my()->id_to_node[msg.sender];
         my()->list_Nr_detected_consensus[node] = data_as_int; //i-1 because list_IDS has 3 entries (myself and 2 others) and my()->list_Nr_detected_IDS has only the 2 others
-        Serial.print("I known that node: has received:"); Serial.print(node);Serial.print(" has received info from ");Serial.println(data_as_int);
+        Serial.print("I known that node: "); Serial.print(node);Serial.print(" has received info from ");Serial.println(data_as_int);
 }
 }
 
@@ -143,7 +146,7 @@ void CanManager::ReceiveConsensusAction(int i,int node, float value){
     Serial.print("ReceiveConsensusAction from ");Serial.print(node);Serial.print(" about vector entry ");Serial.print(i);Serial.print(" with value ");Serial.println(value);
     
     bool bool1 = my()->list_consesus_received_vector[node]<3;
-    bool bool2 = distrControl::all_d[node][i]==-101;
+    bool bool2 = distrControl::all_d[node][i]==distrControl::checkValue;
     if ( bool1 && bool2){//I have not yet received consesus dimings from this node
         //Serial.println("Entered 101 condition");
         my()->list_consesus_received_vector[node] +=1;
