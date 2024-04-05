@@ -312,12 +312,13 @@ void CanManager::setReferenceAction(info_msg &msg) { //msg.data is a uint8_t( un
     //Serial.print("id: "); Serial.println(msg.can_id);
     //Serial.print("value: "); Serial.println(value);
     if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Reference Action received---");
+        //Serial.println("ACTION::Set Reference Action received---");
         float x_ref_value;
         memcpy(&x_ref_value, msg.data, sizeof(float)); // Copy bytes into x_ref_value
         my()->x_ref = x_ref_value;
         my()->ref_volts = Volt2LUX(x_ref_value);
-        Serial.print("New reference set: "); Serial.println(my()->x_ref); 
+        Serial.println("ack");
+        //Serial.print("New reference set: "); Serial.println(my()->x_ref); 
         //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
     }
 }
@@ -326,11 +327,12 @@ void CanManager::setDutyCycleAction(info_msg &msg) {
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Duty Cycle Action received");
+        //Serial.println("ACTION::Set Duty Cycle Action received");
         float time = 1; //time in seconds
         my()->my_pid.setDutyCycle(value, time);
-        Serial.print("New duty cycle set: "); Serial.println(value);
-        Serial.print("Time (s): "); Serial.println(time);
+        Serial.println("ack");
+        //Serial.print("New duty cycle set: "); Serial.println(value);
+        //Serial.print("Time (s): "); Serial.println(time);
         //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
     }
 }
@@ -339,9 +341,10 @@ void CanManager::setOccupancyAction(info_msg &msg) {
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Occupancy Action received");
+        //Serial.println("ACTION::Set Occupancy Action received");
         my()->occupancy = (bool)value;
-        Serial.print("New occupancy set: "); Serial.println((bool)value);
+        Serial.println("ack");
+        //Serial.print("New occupancy set: "); Serial.println((bool)value);
         //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
         
     }
@@ -351,10 +354,11 @@ void CanManager::setAntiWindupAction(info_msg &msg) {
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Anti Windup Action received");
+        //Serial.println("ACTION::Set Anti Windup Action received");
         my()->my_pid.setAntiWindup((bool)value);
-        Serial.print("New anti windup set: "); Serial.println(value);
+        //Serial.print("New anti windup set: "); Serial.println(value);
         //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
+        Serial.println("ack");
     }
 }         
 
@@ -362,10 +366,11 @@ void CanManager::setFeedbackAction(info_msg &msg) {
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Feedback Action received");
+        //Serial.println("ACTION::Set Feedback Action received");
         my()->my_pid.setFeedback((bool)value);
-        Serial.print("New feedback set: "); Serial.println(value);
+        //Serial.print("New feedback set: "); Serial.println(value);
         //CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
+        Serial.println("ack");
     }
 }
 
@@ -375,12 +380,13 @@ void CanManager::getReferenceAction(info_msg &msg) {
     memcpy(&value, msg.data, sizeof(int));
     //Serial.print("msg.data: "); Serial.println(value);
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Reference Action received----");
+        //Serial.println("ACTION::Get Reference Action received----");
         msg.type = my_type::SERIAL_GET_REFERENCE;
         //Serial.print("x_ref_value: "); Serial.println(my()->x_ref);
         unsigned char data[sizeof(float)];
         memcpy(data, &my()->x_ref, sizeof(my()->x_ref));
         CanManager::enqueue_message(PICO_ID, msg.type, data, sizeof(data));
+        //Serial.println("ack");
     }
 }
 
@@ -388,7 +394,7 @@ void CanManager::getDutyCycleAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Duty Cycle Action received");
+        //Serial.println("ACTION::Get Duty Cycle Action received");
         msg.type = my_type::SERIAL_GET_DUTY_CYCLE;
         unsigned char data[sizeof(float)];
         memcpy(data, &my()->u, sizeof(my()->u));
@@ -400,7 +406,7 @@ void CanManager::getIluminanceAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Iluminance Action received");
+        //Serial.println("ACTION::Get Iluminance Action received");
         unsigned char data[sizeof(float)];
         memcpy(data, &my()->vss_lux, sizeof(my()->vss_lux));
         CanManager::enqueue_message(PICO_ID, my_type::SERIAL_GET_ILUMINANCE, data, sizeof(data));
@@ -411,7 +417,7 @@ void CanManager::getOccupancyAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Occupancy Action received");
+        //Serial.println("ACTION::Get Occupancy Action received");
         unsigned char data[sizeof(float)];
         memcpy(data, &my()->occupancy, sizeof(my()->occupancy));
         CanManager::enqueue_message(PICO_ID, my_type::SERIAL_GET_OCCUPANCY, data, sizeof(data));
@@ -422,7 +428,7 @@ void CanManager::getAntiWindupAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Anti Windup Action received");
+        //Serial.println("ACTION::Get Anti Windup Action received");
         unsigned char data[sizeof(float)];
         bool read_val = my()->my_pid.getAntiWindup();
         memcpy(data, &read_val, sizeof(read_val));
@@ -434,7 +440,7 @@ void CanManager::getFeedbackAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Feedback Action received");
+        //Serial.println("ACTION::Get Feedback Action received");
         unsigned char data[sizeof(float)];
         bool read_val = my()->my_pid.getFeedback();
         memcpy(data, &read_val, sizeof(read_val));
@@ -446,7 +452,7 @@ void CanManager::getExternalIluminanceAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get External Iluminance Action received");
+        //Serial.println("ACTION::Get External Iluminance Action received");
         unsigned char data[sizeof(float)];
         float light = my()->o_lux;
         memcpy(data, &light, sizeof(light));
@@ -458,7 +464,7 @@ void CanManager::getElapsedTimeAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Elapsed Time Action received");
+        //Serial.println("ACTION::Get Elapsed Time Action received");
         unsigned char data[sizeof(float)];
         float delta = (float)(my()->current_time - my()->initial_time) * std::pow(10, -3);
         memcpy(data, &delta, sizeof(delta));
@@ -470,7 +476,7 @@ void CanManager::getInstantaneousPowerAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Instantaneous Power Action received");
+        //Serial.println("ACTION::Get Instantaneous Power Action received");
         unsigned char data[sizeof(float)];
         float power = my()->my_metrics.getInstantPower();
         memcpy(data, &power, sizeof(power));
@@ -482,7 +488,7 @@ void CanManager::getAverageEnergyAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Average Energy Action received");
+        //Serial.println("ACTION::Get Average Energy Action received");
         unsigned char data[sizeof(float)];
         float energy = my()->my_metrics.getEnergyConsumption();
         memcpy(data, &energy, sizeof(energy));
@@ -494,7 +500,7 @@ void CanManager::getAverageVisibilityAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Average Visibility Action received");
+        //Serial.println("ACTION::Get Average Visibility Action received");
         unsigned char data[sizeof(float)];
         float visibility = my()->my_metrics.getVisibilityError();
         memcpy(data, &visibility, sizeof(visibility));
@@ -506,7 +512,7 @@ void CanManager::getAverageFlickerAction(info_msg &msg) {
     int value;
     memcpy(&value, msg.data, sizeof(int));
     if (value == PICO_ID) {
-        Serial.println("ACTION::Get Average Flicker Action received");
+        //Serial.println("ACTION::Get Average Flicker Action received");
         unsigned char data[sizeof(float)];
         float flicker = my()->my_metrics.getAverageFlicker();
         memcpy(data, &flicker, sizeof(flicker));
@@ -516,122 +522,110 @@ void CanManager::getAverageFlickerAction(info_msg &msg) {
 
 // Serials
 void CanManager::serialGetReferenceAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Reference Action received");
+    //Serial.println("ACTION::SERIAL Get Reference Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
         Serial.printf("r %d %lf\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetDutyCycleAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Duty Cycle Action received");
+    //Serial.println("ACTION::SERIAL Get Duty Cycle Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
         Serial.printf("d %d %lf\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetIluminanceAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Iluminance Action received");
+    //Serial.println("ACTION::SERIAL Get Iluminance Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
         Serial.printf("l %d %lf\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetOccupancyAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Occupancy Action received");
+    //Serial.println("ACTION::SERIAL Get Occupancy Action received");
     bool value;
     memcpy(&value, msg.data, sizeof(bool));
     if (PICO_ID == HUB) {
         Serial.printf("o %d %d\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetAntiWindupAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Anti Windup Action received");
+    //Serial.println("ACTION::SERIAL Get Anti Windup Action received");
     bool value;
     memcpy(&value, msg.data, sizeof(bool));
     if (PICO_ID == HUB) {
         Serial.printf("a %d %d\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetFeedbackAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Feedback Action received");
+    //Serial.println("ACTION::SERIAL Get Feedback Action received");
     bool value;
     memcpy(&value, msg.data, sizeof(bool));
     if (PICO_ID == HUB) {
         Serial.printf("f %d %d\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetExternalIluminanceAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get External Iluminance Action received");
+    //Serial.println("ACTION::SERIAL Get External Iluminance Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
         Serial.printf("e %d %lf\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetElapsedTimeAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Elapsed Time Action received");
+    //Serial.println("ACTION::SERIAL Get Elapsed Time Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
         Serial.printf("t %d %lf\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetInstantaneousPowerAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Instantaneous Power Action received");
+    //Serial.println("ACTION::SERIAL Get Instantaneous Power Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
         Serial.printf("p %d %lf\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetAverageEnergyAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Average Energy Action received");
+    //Serial.println("ACTION::SERIAL Get Average Energy Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
         Serial.printf("e %d %lf\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetAverageVisibilityAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Average Visibility Action received");
+    //Serial.println("ACTION::SERIAL Get Average Visibility Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
         Serial.printf("v %d %lf\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 
 void CanManager::serialGetAverageFlickerAction(info_msg &msg) {
-    Serial.println("ACTION::SERIAL Get Average Flicker Action received");
+    //Serial.println("ACTION::SERIAL Get Average Flicker Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
         Serial.printf("f %d %lf\n", msg.sender, value);
-        Serial.println("ack");
     }
 }
 

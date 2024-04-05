@@ -45,7 +45,8 @@ void Parser::parseCommand(const String& command) {
                 unsigned char i_char = static_cast<unsigned char>(i);
                 if (i_char == HUB) {
                     my()->x_ref = val;
-                    Serial.print("New reference set: ");Serial.println(my()->x_ref); 
+                    Serial.println("ack");
+                    //Serial.print("New reference set: ");Serial.println(my()->x_ref); 
                 }
                 else {
                     uint8_t new_data[6] = {0};
@@ -63,8 +64,9 @@ void Parser::parseCommand(const String& command) {
                 if (i_char == HUB) {
                     float time = 1;
                     my()->my_pid.setDutyCycle(val, 1);
-                    Serial.print("New duty cycle set: "); Serial.println(val);
-                    Serial.print("Time: "); Serial.println(time);
+                    //Serial.print("New duty cycle set: "); Serial.println(val);
+                    //Serial.print("Time: "); Serial.println(time);
+                    Serial.println("ack");
                 }
                 else {
                     uint8_t new_data[6] = {0};
@@ -133,14 +135,16 @@ void Parser::parseCommand(const String& command) {
                 unsigned char lil = static_cast<unsigned char>(i);
                 int id = my()->id_to_node[value];
                 if (lil == 'l') {
-                    Serial.print("size: "); Serial.println(my()->list_stream_lux.size());
+                    //Serial.print("size: "); Serial.println(my()->list_stream_lux.size());
                     my()->list_stream_lux[id] = true;
-                    Serial.print("bool val: "); Serial.println(my()->list_stream_lux[id]);
+                    Serial.println("ack");
+                    //Serial.print("bool val: "); Serial.println(my()->list_stream_lux[id]);
                 }
                 else if (lil == 'd') {
-                    Serial.println("cheguei!");
+                    //Serial.println("cheguei!");
                     my()->list_stream_duty_cycle[id] = true;
-                    Serial.print("bool val: "); Serial.println(my()->list_stream_duty_cycle[id]);
+                    Serial.println("ack");
+                    //Serial.print("bool val: "); Serial.println(my()->list_stream_duty_cycle[id]);
                 }
             }
             else {
@@ -154,11 +158,13 @@ void Parser::parseCommand(const String& command) {
                 int idS = my()->id_to_node[valueS]; 
                 if (i_char == 'l') {
                     my()->list_stream_lux[idS] = false;
-                    Serial.print("S bool val: "); Serial.println(my()->list_stream_lux[idS]);
+                    Serial.println("ack");
+                    //Serial.print("S bool val: "); Serial.println(my()->list_stream_lux[idS]);
                 }
                 else if (i_char == 'd') {
                     my()->list_stream_duty_cycle[idS] = false;
-                    Serial.print("S bool val: "); Serial.println(my()->list_stream_duty_cycle[idS]);
+                    Serial.println("ack");
+                    //Serial.print("S bool val: "); Serial.println(my()->list_stream_duty_cycle[idS]);
                 }
             }
             else {
@@ -215,6 +221,17 @@ void Parser::parseCommand(const String& command) {
             else {
                 Serial.println("err");
             }
+            break;
+        case 'R':
+            for (int LL = 0; LL < my()->list_IDS.size(); LL++) {
+                if (my()->list_IDS[LL] != HUB) {
+                    Serial.print("Restarting node: "); Serial.println(my()->list_IDS[LL]);
+                    CanManager::enqueue_message(my()->list_IDS[LL], my_type::RESTART, nullptr, 0);
+                }
+            }
+            Serial.println("Restarting device...");
+            watchdog_enable(1, 10); // Set the watchdog to trigger after 1ms
+            while (true); // Loop forever until the watchdog resets the device
             break;
         default:
             Serial.println("err");

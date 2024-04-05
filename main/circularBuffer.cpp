@@ -37,3 +37,11 @@ void CircularBuffer::printBufferDutyCycle() {
         Serial.println(this->buffer_duty_cycle[i]);
     }
 }
+
+std::vector<float> CircularBuffer::getBufferLux() {
+    return this->buffer_lux;
+}
+
+std::vector<float> CircularBuffer::getBufferDutyCycle() {
+    return this->buffer_duty_cycle;
+}

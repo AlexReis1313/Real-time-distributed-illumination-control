@@ -8,10 +8,9 @@
 //GETTERS
 void CanManager::getLowerBoundOccupiedAction(info_msg &msg) {
     //Serial.println("ACTION::Get Lower Bound Occupied Action received");
-    float value;
+    int value;
     memcpy(&value, msg.data, sizeof(float));
-    if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Get Lower Bound Occupied Action received");
+    if (value == PICO_ID) {
         msg.type = my_type::SERIAL_GET_LOWER_BOUND_OCCUPIED;
         unsigned char data[sizeof(float)];
         float lower_bound_occupied = distrControl::get_lower_bound_occupied();
@@ -22,10 +21,10 @@ void CanManager::getLowerBoundOccupiedAction(info_msg &msg) {
 
 void CanManager::getLowerBoundUnoccupiedAction(info_msg &msg) {
     //Serial.println("ACTION::Get Lower Bound Unoccupied Action received");
-    float value;
+    //Serial.println("ACTION::Get Lower Bound Unoccupied Action received");
+    int value;
     memcpy(&value, msg.data, sizeof(float));
-    if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Get Lower Bound Unoccupied Action received");
+    if (value == PICO_ID) {
         msg.type = my_type::SERIAL_GET_LOWER_BOUND_UNOCCUPIED;
         unsigned char data[sizeof(float)];
         float lower_bound_unoccupied = distrControl::get_lower_bound_unoccupied();
@@ -36,10 +35,10 @@ void CanManager::getLowerBoundUnoccupiedAction(info_msg &msg) {
 
 void CanManager::getCurrentLowerBoundAction(info_msg &msg) {
     //Serial.println("ACTION::Get Current Lower Bound Action received");
-    float value;
+    int value;
     memcpy(&value, msg.data, sizeof(float));
-    if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Get Current Lower Bound Action received");
+    if (value == PICO_ID) {
+        //Serial.println("ACTION::Get Current Lower Bound Action received");
         msg.type = my_type::SERIAL_GET_CURRENT_LOWER_BOUND;
         unsigned char data[sizeof(float)];
         float current_lower_bound = distrControl::get_lower_bound();
@@ -50,10 +49,10 @@ void CanManager::getCurrentLowerBoundAction(info_msg &msg) {
 
 void CanManager::getCurrentEnergyCostAction(info_msg &msg) {
     //Serial.println("ACTION::Get Current Energy Cost Action received");
-    float value;
+    int value;
     memcpy(&value, msg.data, sizeof(float));
-    if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Get Current Energy Cost Action received");
+    if (value == PICO_ID) {
+        //Serial.println("ACTION::Get Current Energy Cost Action received");
         msg.type = my_type::SERIAL_GET_CURRENT_ENERGY_COST;
         unsigned char data[sizeof(float)];
         float current_energy_cost = distrControl::get_cost();
@@ -68,7 +67,7 @@ void CanManager::setLowerBoundOccupiedAction(info_msg &msg) {
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Lower Bound Occupied Action received");
+        //Serial.println("ACTION::Set Lower Bound Occupied Action received");
         distrControl::set_lower_bound_occupied(value);
         CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
     }
@@ -79,7 +78,7 @@ void CanManager::setLowerBoundUnoccupiedAction(info_msg &msg) {
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Lower Bound Unoccupied Action received");
+        //Serial.println("ACTION::Set Lower Bound Unoccupied Action received");
         distrControl::set_lower_bound_unoccupied(value);
         CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
     }
@@ -90,14 +89,14 @@ void CanManager::setCurrentEnergyCostAction(info_msg &msg) {
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Set Current Energy Cost Action received");
+        //Serial.println("ACTION::Set Current Energy Cost Action received");
         distrControl::set_cost(value);
         CanManager::enqueue_message(PICO_ID, my_type::ACK, nullptr, 0);
     }
 }
 
 void CanManager::serialGetLowerBoundOccupiedAction(info_msg &msg) {
-    Serial.println("ACTION::Serial Get Lower Bound Occupied Action received");
+    //Serial.println("ACTION::Serial Get Lower Bound Occupied Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
@@ -106,7 +105,7 @@ void CanManager::serialGetLowerBoundOccupiedAction(info_msg &msg) {
 }
 
 void CanManager::serialGetLowerBoundUnoccupiedAction(info_msg &msg) {
-    Serial.println("ACTION::Serial Get Lower Bound Unoccupied Action received");
+    //Serial.println("ACTION::Serial Get Lower Bound Unoccupied Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
@@ -115,7 +114,7 @@ void CanManager::serialGetLowerBoundUnoccupiedAction(info_msg &msg) {
 }
 
 void CanManager::serialGetCurrentLowerBoundAction(info_msg &msg) {
-    Serial.println("ACTION::Serial Get Current Lower Bound Action received");
+    //Serial.println("ACTION::Serial Get Current Lower Bound Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
@@ -124,7 +123,7 @@ void CanManager::serialGetCurrentLowerBoundAction(info_msg &msg) {
 }
 
 void CanManager::serialGetCurrentEnergyCostAction(info_msg &msg) {
-    Serial.println("ACTION::Serial Get Current Energy Cost Action received");
+    //Serial.println("ACTION::Serial Get Current Energy Cost Action received");
     float value;
     memcpy(&value, msg.data, sizeof(float));
     if (PICO_ID == HUB) {
@@ -135,7 +134,8 @@ void CanManager::serialGetCurrentEnergyCostAction(info_msg &msg) {
 void CanManager::restartAction(info_msg &msg) {
     Serial.println("ACTION::Restart Action received");
     if (msg.can_id == PICO_ID) {
-        Serial.println("ACTION::Restart Action received");
-        //distrControl::restart();
+        Serial.println("Restarting device...");
+        watchdog_enable(1, 10); // Set the watchdog to trigger after 1ms
+        while (true); // Loop forever until the watchdog resets the device
     }
 }

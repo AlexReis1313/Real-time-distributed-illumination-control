@@ -30,6 +30,10 @@ void controller_rotine() {
 void stream_rotine() {
     if (PICO_ID == HUB) {
         // if (my()->current_time - my()->last_time_stream >= 1000) {
+        //     int id = my()->id_to_node[PICO_ID];
+        //     Serial.print("ID: "); Serial.println(id);
+        //     int size = my()->pico_buffers[id].getBufferLux().size();
+        //     Serial.print("size: "); Serial.println(size);
         //     my()->pico_buffers[my()->id_to_node[PICO_ID]].addValueLux(my()->vss_lux);
         //     my()->last_time_stream = my()->current_time;
         // }
@@ -125,16 +129,16 @@ void setup1() {
 }
 
 void loop() {
-    if (my()->first_loop>0){
-        Wait_to_sync();
-    }
-    else{
-        if(my()->first_loop==0){my()->first_loop=-1;Serial.println("Free from begining");}
+    // if (my()->first_loop>0){
+    //     Wait_to_sync();
+    // }
+    // else{
+        //if(my()->first_loop==0){my()->first_loop=-1;Serial.println("Free from begining");}
         CanManager::serial_and_actions_rotine();
-        consensus_rotine();
+        //consensus_rotine();
         controller_rotine();
         stream_rotine();
-    }
+    //}
 }
 
 void loop1() {
