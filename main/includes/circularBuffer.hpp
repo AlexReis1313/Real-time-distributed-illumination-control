@@ -13,5 +13,7 @@ class CircularBuffer {
         void addValueDutyCycle(float duty_cycle);
         void printBufferLux();
         void printBufferDutyCycle();
+        std::vector<float> getBufferLux();
+        std::vector<float> getBufferDutyCycle();
         int size;
 };
